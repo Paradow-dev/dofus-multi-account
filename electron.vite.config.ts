@@ -6,7 +6,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         // Modules natifs / node-only : externes (non bundlés)
-        external: ['node-window-manager', 'electron-store', 'electron-updater']
+        external: ['node-window-manager', 'electron-store', 'electron-updater', 'koffi']
       }
     },
     resolve: {

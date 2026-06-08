@@ -97,6 +97,10 @@
   overflow-x: auto;
 }
 
+.combat-row {
+  margin-bottom: 14px;
+}
+
 /* Indicateur de mise à jour dans l'en-tête */
 .upd-note {
   font-family: var(--font-mono);

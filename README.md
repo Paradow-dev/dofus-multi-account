@@ -17,6 +17,8 @@ instantanément entre vos fenêtres et organiser leur disposition.
   agrandir la fenêtre active, ou tout disposer en mosaïque.
 - **Détection automatique** des fenêtres Dofus par titre, avec réordonnancement
   manuel dans l'interface.
+- **Suivi de tour automatique** (combat) — bascule vers la fenêtre du perso dont
+  c'est le tour, détecté via le clignotement (flash) de la fenêtre Dofus.
 - Vit dans la **zone de notification** (tray) ; activable/désactivable à la volée.
 
 ## Plateforme
@@ -47,6 +49,23 @@ npm run package   # génère l'installeur + portable .exe dans dist/ (electron-b
 
 Le design system **Paradow / Midnight Ember** est dans `design-system/` et
 consommé tel quel par le renderer (tokens, composants, polices, thèmes dark/light).
+
+## Mise à jour automatique
+
+L'application se met à jour seule via **electron-updater** + les Releases GitHub :
+elle vérifie au démarrage, télécharge la nouvelle version en arrière-plan et
+l'installe à la prochaine fermeture. Un indicateur s'affiche dans l'en-tête et
+le menu du tray (« Vérifier les mises à jour » / « Redémarrer pour installer »).
+
+> ⚠️ L'auto-update ne concerne que la version **installée** (installeur NSIS),
+> pas la version portable. Installe au moins une fois via l'installeur.
+
+Pour publier une nouvelle version : bumper `version` dans `package.json` puis
+pousser un tag — la CI build, publie la Release et le `latest.yml` :
+
+```bash
+git tag v0.4.0 && git push origin v0.4.0
+```
 
 ## Configuration
 

@@ -6,6 +6,10 @@ directories:
 files:
   - out/**/*
   - package.json
+# Modules natifs : sortis de l'asar pour pouvoir charger leurs binaires .node.
+asarUnpack:
+  - "**/node_modules/koffi/**"
+  - "**/node_modules/node-window-manager/**"
 win:
   target:
     - target: nsis

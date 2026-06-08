@@ -17,7 +17,9 @@ const configSchema = z.object({
   cycleNext: z.string(),
   cyclePrev: z.string(),
   layoutMode: layoutModeSchema,
-  enabled: z.boolean()
+  enabled: z.boolean(),
+  // .default : les configs persistées avant cette option restent valides.
+  turnFollow: z.boolean().default(false)
 })
 
 const store = new Store<{ config: AppConfig }>({

@@ -141,6 +141,17 @@ export function listWindows(accounts: AccountConfig[] = [], includeAll = false):
   return result
 }
 
+/** Titre d'une fenêtre à partir de son handle (HWND). '' si indisponible. */
+export function titleForHandle(handle: number): string {
+  const m = getModule()
+  if (!m) return ''
+  try {
+    return safeTitle(new m.Window(handle))
+  } catch {
+    return ''
+  }
+}
+
 /** Retrouve la fenêtre native correspondant à un compte (par titre). */
 function findWindowForAccount(account: AccountConfig): NativeWindow | null {
   if (!account.matchTitle) return null

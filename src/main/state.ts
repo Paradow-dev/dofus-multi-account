@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { IPC, type AppConfig, type ShortcutRegistration } from '@shared/types'
 import { loadConfig, saveConfig } from './config'
 import { registerAll } from './shortcuts'
+import { syncTurnFollow } from './turnFollow'
 
 let currentConfig: AppConfig = loadConfig()
 let lastRegistrations: ShortcutRegistration[] = []
@@ -24,6 +25,7 @@ export function applyConfig(config: AppConfig): {
 } {
   currentConfig = saveConfig(config)
   lastRegistrations = registerAll(currentConfig)
+  syncTurnFollow()
   broadcastShortcutsState()
   return { config: currentConfig, shortcuts: lastRegistrations }
 }
@@ -31,6 +33,7 @@ export function applyConfig(config: AppConfig): {
 /** Ré-applique la config courante (au démarrage). */
 export function bootstrapShortcuts(): void {
   lastRegistrations = registerAll(currentConfig)
+  syncTurnFollow()
 }
 
 function broadcastShortcutsState(): void {

@@ -30,6 +30,8 @@ export interface AppConfig {
   layoutMode: LayoutMode
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
   enabled: boolean
+  /** Suivi de tour auto : bascule vers la fenêtre qui flashe (tour de jeu). */
+  turnFollow: boolean
 }
 
 /** Une fenêtre détectée à l'exécution. */
@@ -94,7 +96,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   cycleNext: 'Ctrl+Alt+Right',
   cyclePrev: 'Ctrl+Alt+Left',
   layoutMode: 'maximize-active',
-  enabled: true
+  enabled: true,
+  turnFollow: false
 }
 
 /** API exposée au renderer via contextBridge (window.api). */

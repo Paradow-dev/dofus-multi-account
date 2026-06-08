@@ -30,7 +30,8 @@ const state: State = {
     cycleNext: '',
     cyclePrev: '',
     layoutMode: 'maximize-active',
-    enabled: true
+    enabled: true,
+    turnFollow: false
   },
   windows: [],
   registrations: [],
@@ -118,6 +119,7 @@ function render(): void {
   main.append(renderAccounts())
   main.append(renderCycle())
   main.append(renderLayout())
+  main.append(renderCombat())
   main.append(renderDetected())
   root.append(main)
 }
@@ -325,6 +327,26 @@ function renderLayout(): HTMLElement {
     field('Au changement de compte', h('div', { class: 'select-wrap' }, [select, caret()]))
   ])
   return sectionEl('disposition', 'Disposition des fenêtres', grid)
+}
+
+function renderCombat(): HTMLElement {
+  const toggle = renderSwitch('Suivi de tour automatique', state.config.turnFollow, (v) => {
+    state.config.turnFollow = v
+    void save() // prend effet immédiatement (démarre/arrête le hook)
+  })
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Quand c’est le tour d’un perso, Dofus fait clignoter sa fenêtre : l’app la met alors au premier plan. ' +
+          'Active l’option <strong>« Notification quand c’est mon tour »</strong> dans Dofus. ' +
+          'Si Dofus tourne en administrateur, lance aussi cette app en administrateur.'
+      })
+    ])
+  ])
+
+  return sectionEl('combat', 'Suivi de tour', h('div', { class: 'combat-row' }, [toggle]), note)
 }
 
 function renderDetected(): HTMLElement {
