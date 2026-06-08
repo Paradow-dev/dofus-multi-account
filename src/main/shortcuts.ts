@@ -5,7 +5,7 @@ import type {
   CycleDirection,
   ShortcutRegistration
 } from '@shared/types'
-import { focusAccount, maximizeActive, applyGridLayout } from './windowManager'
+import { focusAccount, applyGridLayout } from './windowManager'
 
 /** Index courant dans l'ordre de cycle (référence le compte focalisé en dernier). */
 let currentIndex = 0
@@ -14,19 +14,14 @@ function orderedAccounts(config: AppConfig): AccountConfig[] {
   return [...config.accounts].sort((a, b) => a.order - b.order)
 }
 
-/** Applique la disposition configurée après un changement de fenêtre active. */
-function applyLayoutFor(config: AppConfig, account: AccountConfig): void {
-  switch (config.layoutMode) {
-    case 'maximize-active':
-      maximizeActive(account)
-      break
-    case 'grid':
-      applyGridLayout(config.accounts)
-      break
-    case 'none':
-    default:
-      break
+/** Focalise un compte (en appliquant la disposition) puis, si mode grid, range tout. */
+function focusWithLayout(config: AppConfig, account: AccountConfig): boolean {
+  const ok = focusAccount(account, config.layoutMode)
+  if (ok && config.layoutMode === 'grid') {
+    applyGridLayout(config.accounts)
+    focusAccount(account, 'none') // re-met le compte choisi au premier plan
   }
+  return ok
 }
 
 /** Focalise un compte par id et applique la disposition. */
@@ -34,13 +29,11 @@ export function activateAccount(config: AppConfig, accountId: string): boolean {
   const accounts = orderedAccounts(config)
   const idx = accounts.findIndex((a) => a.id === accountId)
   if (idx === -1) return false
-  const account = accounts[idx]
-  const ok = focusAccount(account)
-  if (ok) {
+  if (focusWithLayout(config, accounts[idx])) {
     currentIndex = idx
-    applyLayoutFor(config, account)
+    return true
   }
-  return ok
+  return false
 }
 
 /** Passe au compte suivant/précédent dans l'ordre de cycle. */
@@ -52,10 +45,8 @@ export function cycle(config: AppConfig, direction: CycleDirection): boolean {
   // On part de l'index courant et on cherche la prochaine fenêtre focalisable.
   for (let i = 1; i <= accounts.length; i++) {
     const idx = (currentIndex + step * i + accounts.length * i) % accounts.length
-    const account = accounts[idx]
-    if (focusAccount(account)) {
+    if (focusWithLayout(config, accounts[idx])) {
       currentIndex = idx
-      applyLayoutFor(config, account)
       return true
     }
   }

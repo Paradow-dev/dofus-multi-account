@@ -10,7 +10,7 @@ import {
 const api: RendererApi = {
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   setConfig: (config: AppConfig) => ipcRenderer.invoke(IPC.configSet, config),
-  listWindows: () => ipcRenderer.invoke(IPC.windowsList),
+  listWindows: (includeAll = false) => ipcRenderer.invoke(IPC.windowsList, includeAll),
   focusAccount: (accountId: string) => ipcRenderer.invoke(IPC.actionFocus, accountId),
   cycle: (direction: CycleDirection) => ipcRenderer.invoke(IPC.actionCycle, direction),
   onShortcutsState: (cb: (registrations: ShortcutRegistration[]) => void) => {

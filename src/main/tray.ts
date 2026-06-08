@@ -2,9 +2,10 @@ import { app, Menu, Tray, nativeImage, type BrowserWindow } from 'electron'
 import { getConfig, applyConfig } from './state'
 import { arrangeGrid } from './shortcuts'
 
-// Icône ember 32×32 embarquée (évite tout asset binaire externe).
+// Marque Paradow 32×32 (chevron blanc + curseur rouge, fond transparent),
+// rasterisée depuis le SVG du design system. Embarquée pour éviter tout asset externe.
 const TRAY_ICON_PNG =
-  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAANUlEQVR42u3TMQ0AAAgDQVyy4N8GmCCB4Zr8fkujK/uyAAAAAAAAAAAAAPgP2BgAgBsCfAYMBpIyjU3ayhcAAAAASUVORK5CYII='
+  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAxUlEQVR42mNgGAWjYDCDLx9fBQPxayhOHggHgCz+j4Q3A7HwQDrgP1TMn55R8BmLI0B4PhBz08MR8kB8GIcj7gOxPT0cwQzExUD8G4sjQGLdQMxOD4foA/F5HKEBEtenhyPYoT7GFRqgkGKmh0PsoWkAW2iA0ow8PRzBDc0N2BwByj3B9Mqu/rjKjOHtgAGNggFLhAOaDQesIBrQonhAKyNKquP/MeH/cWG6NEho5QCim2TUcgDZjVKgRfW48GhzfxQMKgAA6uDET/O/LFYAAAAASUVORK5CYII='
 
 let tray: Tray | null = null
 

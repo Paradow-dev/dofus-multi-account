@@ -2,7 +2,8 @@
 import '@ds/fonts.css'
 import '@ds/tokens/tokens.css'
 import '@ds/ds/styles.css'
-import logoUrl from '@ds/logo/midnight-ember__lockup-inline-nobg-white.svg'
+import './app.css'
+import markUrl from '@ds/logo/midnight-ember__mark-square.svg'
 
 import type {
   AccountConfig,
@@ -17,6 +18,7 @@ interface State {
   config: AppConfig
   windows: DetectedWindow[]
   registrations: ShortcutRegistration[]
+  showAllWindows: boolean
   dirty: boolean
 }
 
@@ -30,6 +32,7 @@ const state: State = {
   },
   windows: [],
   registrations: [],
+  showAllWindows: false,
   dirty: false
 }
 
@@ -37,7 +40,7 @@ const root = document.getElementById('app') as HTMLElement
 
 async function init(): Promise<void> {
   state.config = await window.api.getConfig()
-  state.windows = await window.api.listWindows()
+  await refreshWindows()
   window.api.onShortcutsState((regs) => {
     state.registrations = regs
     render()
@@ -45,7 +48,7 @@ async function init(): Promise<void> {
   render()
 }
 
-/* ---------- Helpers d'état ---------- */
+/* ---------- État ---------- */
 
 function markDirty(): void {
   state.dirty = true
@@ -57,11 +60,11 @@ async function save(): Promise<void> {
   state.config = config
   state.registrations = shortcuts
   state.dirty = false
-  render()
+  await refreshWindows()
 }
 
-async function rescan(): Promise<void> {
-  state.windows = await window.api.listWindows()
+async function refreshWindows(): Promise<void> {
+  state.windows = await window.api.listWindows(state.showAllWindows)
   render()
 }
 
@@ -83,177 +86,6 @@ function removeAccount(id: string): void {
   markDirty()
 }
 
-function failedRegistrations(): ShortcutRegistration[] {
-  return state.registrations.filter((r) => !r.ok)
-}
-
-/* ---------- Rendu ---------- */
-
-function render(): void {
-  clear(root)
-  root.append(renderTopbar())
-
-  const main = h('div', { class: 'content', attrs: { style: 'max-width:880px;margin:0 auto;padding:28px;' } })
-
-  const conflicts = failedRegistrations()
-  if (conflicts.length > 0) {
-    main.append(renderConflicts(conflicts))
-  }
-
-  main.append(renderAccountsSection())
-  main.append(renderGlobalShortcutsSection())
-  main.append(renderLayoutSection())
-  main.append(renderDetectedSection())
-
-  root.append(main)
-}
-
-function renderTopbar(): HTMLElement {
-  const logo = h('img', { attrs: { src: logoUrl, alt: 'Paradow', height: '22' } })
-  const brand = h('div', { class: 'brand' }, [
-    logo,
-    h('span', { class: 'brand-sep', text: '·' }),
-    h('span', { class: 'brand-doc', text: 'Dofus Multi-Account' })
-  ])
-
-  const enabledSwitch = renderSwitch('Raccourcis activés', state.config.enabled, (v) => {
-    state.config.enabled = v
-    void save()
-  })
-
-  const saveBtn = h(
-    'button',
-    {
-      class: `btn ${state.dirty ? 'btn--primary' : 'btn--secondary'}`,
-      text: state.dirty ? 'Enregistrer' : 'Enregistré',
-      on: { click: () => void save() }
-    }
-  )
-  ;(saveBtn as HTMLButtonElement).disabled = !state.dirty
-
-  const meta = h('div', { class: 'topbar-meta' }, [enabledSwitch, saveBtn])
-  return h('div', { class: 'topbar' }, [brand, meta])
-}
-
-function renderConflicts(conflicts: ShortcutRegistration[]): HTMLElement {
-  const list = conflicts.map((c) => `${c.label} (${c.accelerator})`).join(', ')
-  return h('div', { class: 'alert alert--danger' }, [
-    h('div', { class: 'alert-body' }, [
-      h('strong', { text: 'Raccourcis en conflit' }),
-      h('p', {
-        text: `Impossible d'enregistrer : ${list}. Ils sont peut-être déjà utilisés par une autre application.`
-      })
-    ])
-  ])
-}
-
-function sectionHead(kicker: string, title: string, lede?: string): HTMLElement {
-  const head = h('div', { class: 'section-head' }, [
-    h('div', { class: 'kicker', text: kicker }),
-    h('h2', { text: title, attrs: { style: 'font-size:22px;' } })
-  ])
-  if (lede) head.append(h('p', { class: 'lede', text: lede }))
-  return head
-}
-
-function renderAccountsSection(): HTMLElement {
-  const section = h('div', { class: 'section', attrs: { style: 'padding:24px 0;' } })
-  section.append(
-    sectionHead('comptes', 'Comptes', 'Ordre de cycle, fenêtre associée (par titre) et raccourci dédié.')
-  )
-
-  const accounts = [...state.config.accounts].sort((a, b) => a.order - b.order)
-  const listEl = h('div', { class: 'status-list' })
-
-  if (accounts.length === 0) {
-    listEl.append(
-      h('div', { class: 'status-row' }, [
-        h('span', { class: 'ink-3', text: 'Aucun compte. Ajoutez-en un ci-dessous ou depuis les fenêtres détectées.' })
-      ])
-    )
-  }
-
-  accounts.forEach((acc, idx) => listEl.append(renderAccountRow(acc, idx, accounts.length)))
-  section.append(listEl)
-
-  const actions = h('div', { attrs: { style: 'display:flex;gap:10px;margin-top:14px;' } }, [
-    h('button', {
-      class: 'btn btn--secondary btn--sm',
-      text: '+ Ajouter un compte',
-      on: { click: () => addAccount() }
-    })
-  ])
-  section.append(actions)
-  return section
-}
-
-function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLElement {
-  const isActive = state.windows.some((w) => w.accountId === acc.id)
-
-  const orderCtrl = h('div', { attrs: { style: 'display:flex;flex-direction:column;gap:2px;' } }, [
-    iconBtn('▲', idx === 0, () => moveAccount(acc.id, -1)),
-    iconBtn('▼', idx === total - 1, () => moveAccount(acc.id, 1))
-  ])
-
-  const statusDot = h('span', {
-    class: isActive ? 'dot dot--success' : 'dot',
-    title: isActive ? 'Fenêtre détectée' : 'Aucune fenêtre détectée',
-    attrs: isActive ? {} : { style: 'background:var(--ink-4);' }
-  })
-
-  const labelInput = h('input', {
-    class: 'input btn--sm',
-    value: acc.label,
-    placeholder: 'Nom du personnage',
-    attrs: { style: 'height:32px;' },
-    on: {
-      input: (e) => {
-        acc.label = (e.target as HTMLInputElement).value
-        state.dirty = true
-      }
-    }
-  })
-
-  const matchInput = h('input', {
-    class: 'input mono',
-    value: acc.matchTitle,
-    placeholder: 'Texte dans le titre (ex. nom perso)',
-    attrs: { style: 'height:32px;' },
-    on: {
-      input: (e) => {
-        acc.matchTitle = (e.target as HTMLInputElement).value
-        state.dirty = true
-      }
-    }
-  })
-
-  const shortcutInput = renderShortcutCapture(acc.shortcut ?? '', (accel) => {
-    acc.shortcut = accel || undefined
-    markDirty()
-  })
-
-  const focusBtn = h('button', {
-    class: 'btn btn--ghost btn--sm',
-    text: 'Activer',
-    title: 'Mettre cette fenêtre au premier plan',
-    on: { click: () => void window.api.focusAccount(acc.id) }
-  })
-
-  const delBtn = h('button', {
-    class: 'btn btn--ghost btn--sm btn--icon',
-    text: '✕',
-    title: 'Supprimer',
-    on: { click: () => removeAccount(acc.id) }
-  })
-
-  const row = h('div', {
-    class: 'status-row',
-    attrs: { style: 'grid-template-columns:auto auto 1fr 1.4fr 1.4fr auto auto;' }
-  }, [orderCtrl, statusDot, labelInput, matchInput, shortcutInput, focusBtn, delBtn])
-
-  return row
-}
-
 function moveAccount(id: string, delta: number): void {
   const accounts = [...state.config.accounts].sort((a, b) => a.order - b.order)
   const i = accounts.findIndex((a) => a.id === id)
@@ -264,31 +96,186 @@ function moveAccount(id: string, delta: number): void {
   markDirty()
 }
 
-function renderGlobalShortcutsSection(): HTMLElement {
-  const section = h('div', { class: 'section', attrs: { style: 'padding:24px 0;' } })
-  section.append(sectionHead('cycle', 'Raccourcis de cycle', 'Basculer entre les comptes dans l’ordre défini.'))
+const failed = (): ShortcutRegistration[] => state.registrations.filter((r) => !r.ok)
 
-  const grid = h('div', { class: 'input-grid' }, [
-    field('Compte suivant', renderShortcutCapture(state.config.cycleNext, (a) => {
+/* ---------- Rendu ---------- */
+
+function render(): void {
+  clear(root)
+  root.append(renderTopbar())
+  const main = h('main', { class: 'page' })
+
+  const conflicts = failed()
+  if (conflicts.length) main.append(renderConflicts(conflicts))
+
+  main.append(renderAccounts())
+  main.append(renderCycle())
+  main.append(renderLayout())
+  main.append(renderDetected())
+  root.append(main)
+}
+
+function renderTopbar(): HTMLElement {
+  const brand = h('div', { class: 'brand' }, [
+    h('img', { attrs: { src: markUrl, width: '26', height: '26', alt: 'Paradow' } }),
+    h('span', { class: 'brand-name', text: 'paradow' }),
+    h('span', { class: 'brand-sep', text: '/' }),
+    h('span', { class: 'brand-doc', text: 'Multi-Account' })
+  ])
+
+  const enabled = renderSwitch(
+    state.config.enabled ? 'Actif' : 'Inactif',
+    state.config.enabled,
+    (v) => {
+      state.config.enabled = v
+      void save()
+    }
+  )
+
+  const saveBtn = h('button', {
+    class: `btn btn--sm ${state.dirty ? 'btn--primary' : 'btn--secondary'}`,
+    text: state.dirty ? 'Enregistrer' : 'À jour',
+    on: { click: () => void save() }
+  }) as HTMLButtonElement
+  saveBtn.disabled = !state.dirty
+
+  return h('header', { class: 'topbar' }, [brand, h('div', { class: 'topbar-meta' }, [enabled, saveBtn])])
+}
+
+function renderConflicts(conflicts: ShortcutRegistration[]): HTMLElement {
+  const list = conflicts.map((c) => `${c.label} (${c.accelerator})`).join(', ')
+  return h('div', { class: 'alert alert--danger' }, [
+    h('div', { class: 'alert-body' }, [
+      h('strong', { text: 'Raccourci(s) en conflit' }),
+      h('p', { text: `Impossible d'enregistrer : ${list}. Déjà utilisés par une autre application ?` })
+    ])
+  ])
+}
+
+function sectionEl(kicker: string, title: string, ...rest: (Node | null)[]): HTMLElement {
+  const head = h('div', { class: 'sec-head' }, [
+    h('div', { class: 'kicker', text: kicker }),
+    h('h2', { class: 'sec-title', text: title })
+  ])
+  const sec = h('section', { class: 'sec' }, [head])
+  for (const r of rest) if (r) sec.append(r)
+  return sec
+}
+
+function renderAccounts(): HTMLElement {
+  const accounts = [...state.config.accounts].sort((a, b) => a.order - b.order)
+
+  const body = h('tbody', {})
+  if (accounts.length === 0) {
+    body.append(
+      h('tr', {}, [
+        h('td', { class: 'ink-3', attrs: { colspan: '6', style: 'text-align:center;padding:18px;' },
+          text: 'Aucun compte. Ajoutez-en un, ou créez-en depuis les fenêtres détectées ci-dessous.' })
+      ])
+    )
+  }
+  accounts.forEach((acc, i) => body.append(renderAccountRow(acc, i, accounts.length)))
+
+  const table = h('div', { class: 'table-wrap' }, [
+    h('table', { class: 'table' }, [
+      h('thead', {}, [
+        h('tr', {}, [
+          h('th', { text: '' }),
+          h('th', { text: 'Compte' }),
+          h('th', { text: 'Filtre du titre' }),
+          h('th', { text: 'Raccourci' }),
+          h('th', { text: '' }),
+          h('th', { text: '' })
+        ])
+      ]),
+      body
+    ])
+  ])
+
+  const addBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: '+ Ajouter un compte',
+    on: { click: () => addAccount() }
+  })
+
+  return sectionEl('comptes', 'Comptes', table, h('div', { class: 'row-actions' }, [addBtn]))
+}
+
+function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLElement {
+  const active = state.windows.some((w) => w.accountId === acc.id)
+
+  const order = h('div', { class: 'order-ctrl' }, [
+    iconBtn('▲', idx === 0, () => moveAccount(acc.id, -1)),
+    iconBtn('▼', idx === total - 1, () => moveAccount(acc.id, 1))
+  ])
+  const orderCell = h('td', { attrs: { style: 'width:34px;' } }, [order])
+
+  const dot = h('span', {
+    class: active ? 'dot dot--success' : 'dot dot--off',
+    title: active ? 'Fenêtre détectée' : 'Aucune fenêtre détectée'
+  })
+  const label = textInput(acc.label, 'Nom du personnage', (v) => {
+    acc.label = v
+    state.dirty = true
+    syncSaveButton()
+  })
+  const labelCell = h('td', {}, [h('div', { class: 'cell-flex' }, [dot, label])])
+
+  const matchCell = h('td', {}, [
+    textInput(acc.matchTitle, 'Texte du titre', (v) => {
+      acc.matchTitle = v
+      state.dirty = true
+      syncSaveButton()
+    }, true)
+  ])
+
+  const scCell = h('td', { attrs: { style: 'width:150px;' } }, [
+    shortcutCapture(acc.shortcut ?? '', (a) => {
+      acc.shortcut = a || undefined
+      markDirty()
+    })
+  ])
+
+  const focusBtn = h('button', {
+    class: 'btn btn--ghost btn--sm',
+    text: 'Activer',
+    title: 'Mettre cette fenêtre au premier plan',
+    on: { click: () => void window.api.focusAccount(acc.id) }
+  })
+  const delBtn = h('button', {
+    class: 'btn btn--ghost btn--sm btn--icon',
+    text: '✕',
+    title: 'Supprimer',
+    on: { click: () => removeAccount(acc.id) }
+  })
+
+  return h('tr', {}, [
+    orderCell,
+    labelCell,
+    matchCell,
+    scCell,
+    h('td', { attrs: { style: 'width:74px;' } }, [focusBtn]),
+    h('td', { attrs: { style: 'width:44px;' } }, [delBtn])
+  ])
+}
+
+function renderCycle(): HTMLElement {
+  const grid = h('div', { class: 'input-grid two' }, [
+    field('Compte suivant', shortcutCapture(state.config.cycleNext, (a) => {
       state.config.cycleNext = a
       markDirty()
     })),
-    field('Compte précédent', renderShortcutCapture(state.config.cyclePrev, (a) => {
+    field('Compte précédent', shortcutCapture(state.config.cyclePrev, (a) => {
       state.config.cyclePrev = a
       markDirty()
     }))
   ])
-  section.append(grid)
-  return section
+  return sectionEl('cycle', 'Raccourcis de cycle', grid)
 }
 
-function renderLayoutSection(): HTMLElement {
-  const section = h('div', { class: 'section', attrs: { style: 'padding:24px 0;' } })
-  section.append(sectionHead('disposition', 'Disposition des fenêtres'))
-
+function renderLayout(): HTMLElement {
   const select = h('select', {
     class: 'input',
-    value: state.config.layoutMode,
     on: {
       change: (e) => {
         state.config.layoutMode = (e.target as HTMLSelectElement).value as AppConfig['layoutMode']
@@ -296,86 +283,114 @@ function renderLayoutSection(): HTMLElement {
       }
     }
   }, [
-    optionEl('none', 'Aucune (ne pas toucher aux fenêtres)'),
+    optionEl('none', 'Ne rien toucher (juste mettre au premier plan)'),
     optionEl('maximize-active', 'Agrandir la fenêtre active'),
     optionEl('grid', 'Mosaïque (toutes les fenêtres)')
-  ])
-  ;(select as HTMLSelectElement).value = state.config.layoutMode
+  ]) as HTMLSelectElement
+  select.value = state.config.layoutMode
 
-  const wrap = h('div', { class: 'select-wrap' }, [select])
-  const grid = h('div', { class: 'input-grid' }, [field('Au changement de compte', wrap)])
-  section.append(grid)
-  return section
+  const grid = h('div', { class: 'input-grid' }, [
+    field('Au changement de compte', h('div', { class: 'select-wrap' }, [select, caret()]))
+  ])
+  return sectionEl('disposition', 'Disposition des fenêtres', grid)
 }
 
-function renderDetectedSection(): HTMLElement {
-  const section = h('div', { class: 'section', attrs: { style: 'padding:24px 0;border-bottom:none;' } })
-  const head = h('div', {
-    attrs: { style: 'display:flex;justify-content:space-between;align-items:flex-end;' }
-  }, [
-    sectionHead('détection', 'Fenêtres Dofus détectées'),
-    h('button', { class: 'btn btn--secondary btn--sm', text: 'Re-scanner', on: { click: () => void rescan() } })
-  ])
-  section.append(head)
+function renderDetected(): HTMLElement {
+  const allSwitch = renderSwitch('Tout afficher', state.showAllWindows, (v) => {
+    state.showAllWindows = v
+    void refreshWindows()
+  })
+  const rescan = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Re-scanner',
+    on: { click: () => void refreshWindows() }
+  })
+  const tools = h('div', { class: 'sec-tools' }, [allSwitch, rescan])
 
-  const listEl = h('div', { class: 'status-list' })
+  const body = h('tbody', {})
   if (state.windows.length === 0) {
-    listEl.append(
-      h('div', { class: 'status-row' }, [
-        h('span', { class: 'ink-3', text: 'Aucune fenêtre Dofus détectée (lancez le jeu, puis re-scannez).' })
+    body.append(
+      h('tr', {}, [
+        h('td', { class: 'ink-3', attrs: { colspan: '4', style: 'text-align:center;padding:18px;' },
+          text: 'Aucune fenêtre détectée. Lancez Dofus puis re-scannez (ou activez « Tout afficher »).' })
       ])
     )
   }
   for (const win of state.windows) {
     const matched = win.accountId !== undefined
-    const row = h('div', { class: 'status-row' }, [
-      h('span', { class: matched ? 'dot dot--success' : 'dot', attrs: matched ? {} : { style: 'background:var(--ink-4);' } }),
-      h('strong', { text: win.title }),
-      h('code', { text: matched ? 'associé' : 'non associé' }),
-      matched
-        ? h('span', { class: 'ink-3', text: '' })
-        : h('button', {
-            class: 'btn btn--ghost btn--sm',
-            text: '+ Compte',
-            title: 'Créer un compte à partir de cette fenêtre',
-            on: { click: () => addAccount(win.title, win.title) }
-          })
-    ])
-    listEl.append(row)
+    const dotCls = matched ? 'dot dot--success' : win.isGame ? 'dot dot--info' : 'dot dot--off'
+    const action = matched
+      ? h('span', { class: 'ink-4 small', text: 'associé' })
+      : h('button', {
+          class: 'btn btn--ghost btn--sm',
+          text: '+ Compte',
+          on: { click: () => addAccount(win.title, win.title) }
+        })
+    body.append(
+      h('tr', {}, [
+        h('td', { attrs: { style: 'width:20px;' } }, [h('span', { class: dotCls })]),
+        h('td', {}, [h('strong', { text: win.title })]),
+        h('td', { class: 'mono small ink-3', text: win.exePath ?? '—' }),
+        h('td', { attrs: { style: 'width:90px;' } }, [action])
+      ])
+    )
   }
-  section.append(listEl)
-  return section
+
+  const table = h('div', { class: 'table-wrap' }, [
+    h('table', { class: 'table' }, [
+      h('thead', {}, [
+        h('tr', {}, [h('th', { text: '' }), h('th', { text: 'Titre de la fenêtre' }), h('th', { text: 'Exécutable' }), h('th', { text: '' })])
+      ]),
+      body
+    ])
+  ])
+
+  const hint = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', { html: 'Une fenêtre Dofus n’apparaît pas&nbsp;? Si le jeu est lancé <strong>en administrateur</strong>, lancez aussi cette application en administrateur.' })
+    ])
+  ])
+
+  const sec = sectionEl('détection', 'Fenêtres détectées', table, hint)
+  sec.querySelector('.sec-head')?.append(tools)
+  return sec
 }
 
-/* ---------- Composants réutilisables ---------- */
+/* ---------- Composants ---------- */
 
-function renderShortcutCapture(current: string, onChange: (accel: string) => void): HTMLElement {
+function textInput(value: string, placeholder: string, onInput: (v: string) => void, mono = false): HTMLInputElement {
+  return h('input', {
+    class: `input input--cell${mono ? ' mono' : ''}`,
+    value,
+    placeholder,
+    on: { input: (e) => onInput((e.target as HTMLInputElement).value) }
+  }) as HTMLInputElement
+}
+
+function shortcutCapture(current: string, onChange: (accel: string) => void): HTMLInputElement {
   const input = h('input', {
-    class: 'input mono',
+    class: 'input input--cell mono sc-capture',
     value: current,
     readonly: true,
-    placeholder: 'Cliquez puis tapez…',
-    attrs: { style: 'height:32px;cursor:pointer;' },
+    placeholder: 'cliquer + taper',
     on: {
       keydown: (e) => {
         const ke = e as KeyboardEvent
         e.preventDefault()
         if (ke.key === 'Backspace' || ke.key === 'Delete') {
-          ;(input as HTMLInputElement).value = ''
+          input.value = ''
           onChange('')
           return
         }
         const accel = eventToAccelerator(ke)
         if (accel) {
-          ;(input as HTMLInputElement).value = accel
+          input.value = accel
           onChange(accel)
-          ;(input as HTMLInputElement).blur()
+          input.blur()
         }
-      },
-      focus: () => input.classList.add('is-focus'),
-      blur: () => input.classList.remove('is-focus')
+      }
     }
-  })
+  }) as HTMLInputElement
   return input
 }
 
@@ -388,7 +403,7 @@ function renderSwitch(label: string, checked: boolean, onChange: (v: boolean) =>
   return h('label', { class: 'switch' }, [
     input,
     h('span', { class: 'switch-track' }, [h('span', { class: 'switch-thumb' })]),
-    h('span', { text: label })
+    h('span', { class: 'small', text: label })
   ])
 }
 
@@ -403,15 +418,39 @@ function optionEl(value: string, label: string): HTMLOptionElement {
   return o
 }
 
+function caret(): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(ns, 'svg')
+  svg.setAttribute('width', '14')
+  svg.setAttribute('height', '14')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('fill', 'none')
+  svg.setAttribute('stroke', 'currentColor')
+  svg.setAttribute('stroke-width', '2')
+  const path = document.createElementNS(ns, 'path')
+  path.setAttribute('d', 'M6 9l6 6 6-6')
+  svg.append(path)
+  return svg
+}
+
 function iconBtn(symbol: string, disabled: boolean, onClick: () => void): HTMLButtonElement {
   const btn = h('button', {
-    class: 'btn btn--ghost btn--icon',
+    class: 'btn btn--ghost order-btn',
     text: symbol,
-    attrs: { style: 'height:16px;width:20px;padding:0;font-size:10px;' },
     on: { click: onClick }
   }) as HTMLButtonElement
   btn.disabled = disabled
   return btn
+}
+
+/** Met à jour l'état du bouton Enregistrer sans re-rendre (évite de perdre le focus input). */
+function syncSaveButton(): void {
+  const btn = document.querySelector('.topbar-meta .btn') as HTMLButtonElement | null
+  if (!btn) return
+  btn.disabled = !state.dirty
+  btn.textContent = state.dirty ? 'Enregistrer' : 'À jour'
+  btn.classList.toggle('btn--primary', state.dirty)
+  btn.classList.toggle('btn--secondary', !state.dirty)
 }
 
 void init()

@@ -32,11 +32,15 @@ export interface AppConfig {
   enabled: boolean
 }
 
-/** Une fenêtre Dofus détectée à l'exécution. */
+/** Une fenêtre détectée à l'exécution. */
 export interface DetectedWindow {
   /** Handle natif (HWND) — change à chaque lancement du jeu. */
   handle: number
   title: string
+  /** Chemin de l'exécutable propriétaire de la fenêtre, si disponible. */
+  exePath?: string
+  /** true si la fenêtre ressemble à un client Dofus (titre ou exe). */
+  isGame: boolean
   bounds: { x: number; y: number; width: number; height: number }
   /** id du compte auquel cette fenêtre a été réconciliée, le cas échéant. */
   accountId?: string
@@ -75,7 +79,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 export interface RendererApi {
   getConfig(): Promise<AppConfig>
   setConfig(config: AppConfig): Promise<{ config: AppConfig; shortcuts: ShortcutRegistration[] }>
-  listWindows(): Promise<DetectedWindow[]>
+  listWindows(includeAll?: boolean): Promise<DetectedWindow[]>
   focusAccount(accountId: string): Promise<boolean>
   cycle(direction: CycleDirection): Promise<boolean>
   onShortcutsState(cb: (registrations: ShortcutRegistration[]) => void): () => void
