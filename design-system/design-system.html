@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<title>Paradow — Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ds/styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER — sticky, with logo, version, theme toggle
+============================================================ -->
+<header class="topbar">
+  <a class="brand" href="#top">
+    <svg class="brand-mark" viewBox="0 0 100 100" width="28" height="28" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter">
+        <path d="M 28 22 L 64 50 L 28 78"></path>
+        
+      </g>
+      <rect x="70" y="72" width="18" height="8" fill="var(--accent)"></rect>
+    </svg>
+    <span class="brand-name">Paradow</span>
+    <span class="brand-sep">/</span>
+    <span class="brand-doc">Design System</span>
+  </a>
+  <div class="topbar-meta">
+    <code class="ver">v1.0 · May 2026</code>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <span class="theme-toggle-track">
+        <span class="theme-toggle-thumb"></span>
+      </span>
+      <span class="theme-toggle-label">Dark</span>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ========================================================
+       SIDEBAR — sticky TOC
+  ======================================================== -->
+  <aside class="toc">
+    <div class="toc-section">
+      <div class="toc-label">// FOUNDATIONS</div>
+      <a href="#intro">Introduction</a>
+      <a href="#brand">Brand essence</a>
+      <a href="#colors">Couleurs</a>
+      <a href="#typography">Typographie</a>
+      <a href="#spacing">Espacement &amp; grille</a>
+      <a href="#icons">Iconographie</a>
+      <a href="#motion">Motion</a>
+    </div>
+    <div class="toc-section">
+      <div class="toc-label">// COMPONENTS</div>
+      <a href="#buttons">Boutons</a>
+      <a href="#inputs">Inputs</a>
+      <a href="#selects">Selects &amp; toggles</a>
+      <a href="#badges">Badges &amp; status</a>
+      <a href="#alerts">Alertes</a>
+      <a href="#cards">Cards</a>
+      <a href="#tables">Tables</a>
+      <a href="#nav">Navigation</a>
+      <a href="#tabs">Tabs</a>
+    </div>
+    <div class="toc-section">
+      <div class="toc-label">// GUIDELINES</div>
+      <a href="#voice">Voice &amp; tone</a>
+      <a href="#dosdonts">Do's &amp; Don'ts</a>
+    </div>
+  </aside>
+
+  <!-- ========================================================
+       MAIN
+  ======================================================== -->
+  <main class="content" id="top">
+
+    <!-- INTRO -->
+    <section id="intro" class="hero">
+      <div class="eyebrow">// PARADOW · DESIGN SYSTEM · MIDNIGHT EMBER</div>
+      <h1 class="hero-title">Une seule direction.<br>Un système, deux modes,<br>zéro bruit.</h1>
+      <p class="hero-lede">
+        Ce document recense les fondations visuelles de Paradow — couleurs, typographie, espacement, composants — pensées pour des outils internes denses où chaque pixel doit gagner sa place. Le système est dérivé du <em>&gt;_prompt</em> : il en respecte la posture (calme, technique, disponible) et la palette unique (Midnight Ember).
+      </p>
+      <div class="hero-meta">
+        <div><span class="meta-k">Version</span><span class="meta-v">1.0</span></div>
+        <div><span class="meta-k">Modes</span><span class="meta-v">Sombre &middot; Clair</span></div>
+        <div><span class="meta-k">Stack</span><span class="meta-v">CSS variables / agnostique</span></div>
+        <div><span class="meta-k">Accent</span><span class="meta-v"><span class="swatch-dot" style="background:#FF5C57"></span> Ember <code>#FF5C57</code></span></div>
+      </div>
+    </section>
+
+    <!-- BRAND ESSENCE -->
+    <section id="brand" class="section">
+      <div class="section-head">
+        <div class="kicker">// 01 — Fondations</div>
+        <h2>Brand essence</h2>
+        <p class="lede">Trois mots pour cadrer toutes les décisions visuelles qui suivent.</p>
+      </div>
+
+      <div class="essence-grid">
+        <div class="essence">
+          <div class="essence-num">01</div>
+          <h3>Calme</h3>
+          <p>Pas de gradient agressif, pas de glow, pas de cinétique gratuite. Le système respire. L'accent ember se mérite — on ne le sature jamais.</p>
+        </div>
+        <div class="essence">
+          <div class="essence-num">02</div>
+          <h3>Technique</h3>
+          <p>Densité d'information assumée. Tables compactes, monospace pour les valeurs, grilles visibles. On parle à des ingénieurs, on ne les ménage pas.</p>
+        </div>
+        <div class="essence">
+          <div class="essence-num">03</div>
+          <h3>Disponible</h3>
+          <p>Le curseur clignote — je suis en ligne. États clairs, feedback immédiat, jamais d'ambigüité sur ce qui est cliquable, en cours, en erreur.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         COLORS
+    ============================================================ -->
+    <section id="colors" class="section">
+      <div class="section-head">
+        <div class="kicker">// 02 — Foundations</div>
+        <h2>Couleurs</h2>
+        <p class="lede">
+          Une palette resserrée : <strong>encre</strong>, <strong>papier</strong>, et un seul accent <strong>ember</strong>.
+          Tout le reste — sémantique, neutres, surfaces — découle de ces trois ancres.
+          Toutes les valeurs sont exposées comme variables CSS pour basculer entre modes sans dupliquer le markup.
+        </p>
+      </div>
+
+      <h3 class="sub">Ancres de marque</h3>
+      <div class="anchor-grid">
+        <div class="anchor-tile" style="background:#0E1116;color:#F4F1EA">
+          <div class="anchor-name">Ink</div>
+          <code class="anchor-hex">#0E1116</code>
+          <div class="anchor-role">Fond mode sombre &middot; texte mode clair</div>
+        </div>
+        <div class="anchor-tile" style="background:#F4F1EA;color:#0E1116;border:1px solid rgba(14,17,22,0.08)">
+          <div class="anchor-name">Paper</div>
+          <code class="anchor-hex">#F4F1EA</code>
+          <div class="anchor-role">Fond mode clair &middot; texte mode sombre</div>
+        </div>
+        <div class="anchor-tile" style="background:#FF5C57;color:#0E1116">
+          <div class="anchor-name">Ember</div>
+          <code class="anchor-hex">#FF5C57</code>
+          <div class="anchor-role">Accent unique — actions, focus, marqueurs de marque</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Échelle d'encre — neutres</h3>
+      <p class="note">L'échelle est <strong>perceptuelle</strong>, pas linéaire. Les paliers sont calés pour conserver leur fonction sémantique d'un mode à l'autre (les rôles ci-dessous sont stables, les valeurs s'inversent).</p>
+      <div class="scale-table">
+        <div class="scale-row scale-row--head">
+          <div>Token</div><div>Sombre</div><div>Clair</div><div>Rôle</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--bg</code></div>
+          <div><span class="swatch" style="background:#0E1116"></span><code>#0E1116</code></div>
+          <div><span class="swatch" style="background:#F4F1EA;border:1px solid rgba(0,0,0,0.08)"></span><code>#F4F1EA</code></div>
+          <div>Fond page</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--bg-elevated</code></div>
+          <div><span class="swatch" style="background:#161A21"></span><code>#161A21</code></div>
+          <div><span class="swatch" style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.08)"></span><code>#FFFFFF</code></div>
+          <div>Cards, modales, surface au-dessus du fond</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--bg-subtle</code></div>
+          <div><span class="swatch" style="background:#1A1D23"></span><code>#1A1D23</code></div>
+          <div><span class="swatch" style="background:#EAE7E0;border:1px solid rgba(0,0,0,0.08)"></span><code>#EAE7E0</code></div>
+          <div>Hover de fond, lignes alternées, zones inactives</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--ink</code></div>
+          <div><span class="swatch" style="background:#F4F1EA"></span><code>#F4F1EA</code></div>
+          <div><span class="swatch" style="background:#0E1116"></span><code>#0E1116</code></div>
+          <div>Texte primaire</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--ink-2</code></div>
+          <div><span class="swatch" style="background:#C9CCD2"></span><code>#C9CCD2</code></div>
+          <div><span class="swatch" style="background:#3D424A"></span><code>#3D424A</code></div>
+          <div>Texte secondaire, labels</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--ink-3</code></div>
+          <div><span class="swatch" style="background:#8E929A"></span><code>#8E929A</code></div>
+          <div><span class="swatch" style="background:#6B6F77"></span><code>#6B6F77</code></div>
+          <div>Texte tertiaire, placeholder, aide</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--ink-4</code></div>
+          <div><span class="swatch" style="background:#5C6068"></span><code>#5C6068</code></div>
+          <div><span class="swatch" style="background:#9DA1A8"></span><code>#9DA1A8</code></div>
+          <div>Texte désactivé, icônes décoratives</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--line</code></div>
+          <div><span class="swatch" style="background:rgba(244,241,234,0.10)"></span><code>rgba(244,241,234,.10)</code></div>
+          <div><span class="swatch" style="background:rgba(14,17,22,0.10)"></span><code>rgba(14,17,22,.10)</code></div>
+          <div>Séparateurs, bordures discrètes</div>
+        </div>
+        <div class="scale-row">
+          <div><code>--line-strong</code></div>
+          <div><span class="swatch" style="background:rgba(244,241,234,0.18)"></span><code>rgba(244,241,234,.18)</code></div>
+          <div><span class="swatch" style="background:rgba(14,17,22,0.18)"></span><code>rgba(14,17,22,.18)</code></div>
+          <div>Bordures d'inputs, divisions de tables</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Couleurs sémantiques</h3>
+      <p class="note">Quatre signaux, harmonisés avec ember — saturation contrôlée, jamais criardes. Chaque couleur a une forme <em>solid</em> (texte/icône sur fond neutre) et une forme <em>soft</em> (fond de badge ou banner).</p>
+      <div class="sem-grid">
+        <div class="sem">
+          <div class="sem-head"><span class="sem-dot" style="background:#7DC36B"></span><strong>Success</strong><code>#7DC36B</code></div>
+          <div class="sem-uses"><span class="badge badge--success">Up</span><span class="badge badge--success-soft">healthy · 99.98%</span></div>
+          <p>Vert sémantique séparé de l'accent ember. Réservé aux états sains : services up, checks OK, validation. Sur fond clair, on assombrit légèrement (<code>#4F9E3D</code>).</p>
+        </div>
+        <div class="sem">
+          <div class="sem-head"><span class="sem-dot" style="background:#6BBEF1"></span><strong>Info</strong><code>#6BBEF1</code></div>
+          <div class="sem-uses"><span class="badge badge--info">Notice</span><span class="badge badge--info-soft">scheduled maintenance</span></div>
+          <p>Bleu ciel pour les informations neutres : annonces, dates, liens documentation.</p>
+        </div>
+        <div class="sem">
+          <div class="sem-head"><span class="sem-dot" style="background:#F1C36B"></span><strong>Warning</strong><code>#F1C36B</code></div>
+          <div class="sem-uses"><span class="badge badge--warn">Degraded</span><span class="badge badge--warn-soft">latency &gt; 200ms</span></div>
+          <p>Ambre — l'écho de Console Amber. Pour les états dégradés, les avertissements non bloquants.</p>
+        </div>
+        <div class="sem">
+          <div class="sem-head"><span class="sem-dot" style="background:#F16B6B"></span><strong>Danger</strong><code>#F16B6B</code></div>
+          <div class="sem-uses"><span class="badge badge--danger">Down</span><span class="badge badge--danger-soft">incident open</span></div>
+          <p>Réservé aux erreurs et états cassés. À utiliser <strong>seul</strong> — pas d'icône inutile, pas d'illustration.</p>
+        </div>
+      </div>
+
+      <h3 class="sub">Règles d'usage</h3>
+      <div class="rules">
+        <div class="rule rule--ok">
+          <div class="rule-tag">Do</div>
+          <p>Un seul accent ember par écran principal. Tout le reste se construit en encres neutres.</p>
+        </div>
+        <div class="rule rule--ok">
+          <div class="rule-tag">Do</div>
+          <p>Utiliser <code>--bg-elevated</code> pour signaler la hiérarchie : une card est <em>au-dessus</em> du fond, pas <em>à côté</em>.</p>
+        </div>
+        <div class="rule rule--no">
+          <div class="rule-tag">Don't</div>
+          <p>Ne pas composer des dégradés ember → autre couleur. L'ember reste plein, jamais translucide à plus de 15%.</p>
+        </div>
+        <div class="rule rule--no">
+          <div class="rule-tag">Don't</div>
+          <p>Ne pas appliquer l'ember sur du texte de paragraphe — réservé aux titres courts, boutons primaires, et marqueurs.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         TYPOGRAPHY
+    ============================================================ -->
+    <section id="typography" class="section">
+      <div class="section-head">
+        <div class="kicker">// 03 — Foundations</div>
+        <h2>Typographie</h2>
+        <p class="lede">
+          Deux familles, deux registres. <strong>Space Grotesk</strong> porte tout ce qui parle à l'humain : titres, paragraphes, UI.
+          <strong>Fira Code</strong> porte tout ce qui parle à la machine : tokens, valeurs, commandes, étiquettes de section.
+          Pas de troisième police — la tension entre les deux suffit.
+        </p>
+      </div>
+
+      <h3 class="sub">Familles</h3>
+      <div class="font-grid">
+        <div class="font-card">
+          <div class="font-card-head">
+            <div>
+              <div class="font-name">Space Grotesk</div>
+              <div class="font-role">Display + UI · weights 400, 500, 600, 700</div>
+            </div>
+            <a class="font-link" href="https://fonts.google.com/specimen/Space+Grotesk" target="_blank" rel="noopener">fonts.google.com ↗</a>
+          </div>
+          <div class="font-sample" style="font-family:'Space Grotesk',sans-serif;">
+            <div class="font-big">Aa</div>
+            <div class="font-glyphs">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — &gt; &amp; ()[]{}</div>
+          </div>
+        </div>
+        <div class="font-card">
+          <div class="font-card-head">
+            <div>
+              <div class="font-name mono">Fira Code</div>
+              <div class="font-role">Monospace · weights 400, 500, 600</div>
+            </div>
+            <a class="font-link" href="https://fonts.google.com/specimen/Fira+Code" target="_blank" rel="noopener">fonts.google.com ↗</a>
+          </div>
+          <div class="font-sample mono">
+            <div class="font-big">Aa</div>
+            <div class="font-glyphs">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — &gt;_= -&gt; =&gt;</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub">Échelle</h3>
+      <p class="note">Échelle modulaire, ratio ≈ 1.25. Toutes les valeurs sont en <code>px</code> ; les <code>line-height</code> sont serrés sur les titres (1.0–1.15), aérés sur les paragraphes (1.55–1.6).</p>
+      <div class="type-scale">
+        <div class="type-row">
+          <div class="type-spec"><code>display</code><span>56 / 1.0 / 600 / -0.035em</span></div>
+          <div class="type-sample" style="font-size:56px;line-height:1;letter-spacing:-0.035em;font-weight:600">Functions over friction.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>h1</code><span>36 / 1.1 / 600 / -0.03em</span></div>
+          <div class="type-sample" style="font-size:36px;line-height:1.1;letter-spacing:-0.03em;font-weight:600">Journal de bord</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>h2</code><span>24 / 1.2 / 600 / -0.025em</span></div>
+          <div class="type-sample" style="font-size:24px;line-height:1.2;letter-spacing:-0.025em;font-weight:600">En ce moment</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>h3</code><span>18 / 1.3 / 600 / -0.02em</span></div>
+          <div class="type-sample" style="font-size:18px;line-height:1.3;letter-spacing:-0.02em;font-weight:600">Service Vault — production</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>body</code><span>14 / 1.55 / 400</span></div>
+          <div class="type-sample" style="font-size:14px;line-height:1.55">Dev solo, joueur, bricoleur du web. Je construis des choses sur internet, je les casse parfois, et je les documente ici — sans bullshit, juste ce que je fais.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>body-sm</code><span>13 / 1.5 / 400</span></div>
+          <div class="type-sample" style="font-size:13px;line-height:1.5;color:var(--ink-2)">Description secondaire, aide contextuelle sous les inputs, métadonnées non critiques.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>caption</code><span>11 / 1.4 / 500 / 0.08em</span></div>
+          <div class="type-sample" style="font-size:11px;line-height:1.4;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);font-weight:500">Last updated · 12 minutes ago</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>mono</code><span>Fira Code · 12 / 1.4</span></div>
+          <div class="type-sample mono" style="font-size:12px;line-height:1.4">$ paradow status --service=vault → 200 OK · 47ms</div>
+        </div>
+        <div class="type-row">
+          <div class="type-spec"><code>label</code><span>Fira Code · 10 / 0.18em</span></div>
+          <div class="type-sample mono" style="font-size:10px;line-height:1.4;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3)">// SECTION HEADER</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Hiérarchie en contexte</h3>
+      <div class="type-context">
+        <div class="mono" style="font-size:10px;letter-spacing:0.18em;color:var(--ink-3);margin-bottom:14px">// INCIDENT · LAM-1847</div>
+        <h3 style="font-size:28px;letter-spacing:-0.03em;line-height:1.1">Vault — latence en hausse depuis 09:14</h3>
+        <p style="margin-top:10px;font-size:14px;color:var(--ink-2);max-width:60ch;line-height:1.6">L'instance <code>vault-eu-west-1</code> répond avec une latence p95 supérieure à 200 ms depuis 09:14:32. Aucune erreur 5xx remontée. Investigation en cours par Marie L.</p>
+        <div style="display:flex;gap:14px;margin-top:14px;align-items:center">
+          <span class="badge badge--warn">Degraded</span>
+          <span class="mono" style="font-size:11px;color:var(--ink-3);letter-spacing:0.05em">opened 09:14 · 23 min ago</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SPACING & GRID
+    ============================================================ -->
+    <section id="spacing" class="section">
+      <div class="section-head">
+        <div class="kicker">// 04 — Foundations</div>
+        <h2>Espacement &amp; grille</h2>
+        <p class="lede">
+          Base <strong>4 px</strong>. Toute mesure d'espacement, padding, gap ou offset doit être un multiple de 4 — sans exception cosmétique.
+          Pour les outils internes, on travaille en densité haute : préférez <code>--sp-2</code> à <code>--sp-3</code> sauf nécessité.
+        </p>
+      </div>
+
+      <h3 class="sub">Échelle d'espacement</h3>
+      <div class="space-table">
+        <div class="space-row space-row--head">
+          <div>Token</div><div>Valeur</div><div>Visuel</div><div>Usage type</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-1</code></div><div><code>4 px</code></div>
+          <div><span class="space-bar" style="width:4px"></span></div>
+          <div>Espace entre icône et label dans un bouton</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-2</code></div><div><code>8 px</code></div>
+          <div><span class="space-bar" style="width:8px"></span></div>
+          <div>Gap entre champs liés, padding compact</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-3</code></div><div><code>12 px</code></div>
+          <div><span class="space-bar" style="width:12px"></span></div>
+          <div>Padding bouton, gap entre badges</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-4</code></div><div><code>16 px</code></div>
+          <div><span class="space-bar" style="width:16px"></span></div>
+          <div>Padding interne de card, gap de grille</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-5</code></div><div><code>20 px</code></div>
+          <div><span class="space-bar" style="width:20px"></span></div>
+          <div>Padding de card étendu</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-6</code></div><div><code>24 px</code></div>
+          <div><span class="space-bar" style="width:24px"></span></div>
+          <div>Padding de section, espacement entre cards</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-8</code></div><div><code>32 px</code></div>
+          <div><span class="space-bar" style="width:32px"></span></div>
+          <div>Marges de page latérales (mobile)</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-10</code></div><div><code>40 px</code></div>
+          <div><span class="space-bar" style="width:40px"></span></div>
+          <div>Espacement entre sections d'une page</div>
+        </div>
+        <div class="space-row">
+          <div><code>--sp-14</code></div><div><code>56 px</code></div>
+          <div><span class="space-bar" style="width:56px"></span></div>
+          <div>Espacement entre grandes sections, padding top de hero</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Rayons de coin</h3>
+      <div class="radius-grid">
+        <div class="radius-tile"><div class="radius-shape" style="border-radius:2px"></div><code>--r-1 · 2px</code><span>Inputs, tags compacts</span></div>
+        <div class="radius-tile"><div class="radius-shape" style="border-radius:4px"></div><code>--r-2 · 4px</code><span>Boutons, badges, cards compacts</span></div>
+        <div class="radius-tile"><div class="radius-shape" style="border-radius:6px"></div><code>--r-3 · 6px</code><span>Cards standards (défaut)</span></div>
+        <div class="radius-tile"><div class="radius-shape" style="border-radius:8px"></div><code>--r-4 · 8px</code><span>Modales, panels élevés</span></div>
+        <div class="radius-tile"><div class="radius-shape" style="border-radius:99px"></div><code>--r-pill</code><span>Pills, status badges</span></div>
+      </div>
+      <p class="note" style="margin-top:14px">Pas de coin parfaitement carré sauf cas typographique (les paths du logo, le curseur). Pas de <code>border-radius</code> arbitraire — la palette ci-dessus suffit.</p>
+
+      <h3 class="sub">Grille de layout</h3>
+      <div class="grid-demo">
+        <div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div>
+        <div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div>
+        <div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div>
+      </div>
+      <div class="grid-specs">
+        <div><code>cols</code><span>12</span></div>
+        <div><code>gutter</code><span>24 px</span></div>
+        <div><code>max-width</code><span>1280 px</span></div>
+        <div><code>side padding</code><span>28 px (desktop) · 16 px (mobile)</span></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ICONS
+    ============================================================ -->
+    <section id="icons" class="section">
+      <div class="section-head">
+        <div class="kicker">// 05 — Foundations</div>
+        <h2>Iconographie</h2>
+        <p class="lede">
+          Style <strong>line</strong>, monochrome, dérivé de la grille Lucide / Feather. Trait de <code>1.5 px</code>, bouts arrondis (<code>stroke-linecap: round</code>), grille de <code>24 × 24</code>.
+          On ne colorise jamais une icône — elle prend <code>currentColor</code> et hérite du contexte.
+        </p>
+      </div>
+
+      <h3 class="sub">Spécifications</h3>
+      <div class="icon-specs">
+        <div><code>viewBox</code><span>0 0 24 24</span></div>
+        <div><code>stroke-width</code><span>1.5 px</span></div>
+        <div><code>stroke-linecap</code><span>round</span></div>
+        <div><code>stroke-linejoin</code><span>round</span></div>
+        <div><code>fill</code><span>none (sauf indicateurs)</span></div>
+        <div><code>tailles</code><span>16 · 20 · 24 · 32 px</span></div>
+      </div>
+
+      <h3 class="sub">Bibliothèque</h3>
+      <div class="icon-grid">
+        <!-- Each tile: SVG + name -->
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg><span>terminal</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="1.5"/><rect x="2" y="13" width="20" height="8" rx="1.5"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg><span>server</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>alert-triangle</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>check</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>x</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>chevron-right</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>search</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>settings</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>user</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>plus</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>copy</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>external-link</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>eye</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>lock</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg><span>mail</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>calendar</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>clock</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>bell</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span>message</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>activity</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg><span>inbox</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>download</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>info</span></div>
+        <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>zap</span></div>
+      </div>
+
+      <h3 class="sub">Tailles standards</h3>
+      <div class="icon-sizes">
+        <div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><code>16 px</code><span>Inline avec body-sm</span></div>
+        <div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><code>20 px</code><span>Inline avec body (défaut)</span></div>
+        <div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><code>24 px</code><span>Navigation, toolbars</span></div>
+        <div><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><code>32 px</code><span>Empty states, headers</span></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         MOTION
+    ============================================================ -->
+    <section id="motion" class="section">
+      <div class="section-head">
+        <div class="kicker">// 06 — Foundations</div>
+        <h2>Motion</h2>
+        <p class="lede">
+          Le système est <strong>discret</strong>. Pas d'animation de page, pas de bounce, pas de stagger théâtral.
+          On utilise le mouvement uniquement pour <em>confirmer une action</em> — hover, focus, ouverture, fermeture.
+          Quatre durées, trois courbes, c'est tout.
+        </p>
+      </div>
+
+      <h3 class="sub">Durées</h3>
+      <div class="motion-grid">
+        <div class="motion-card">
+          <code class="motion-token">--dur-instant</code>
+          <div class="motion-value">75 ms</div>
+          <div class="motion-demo" data-dur="75"></div>
+          <p>Hover, changement de couleur. L'œil ne le remarque pas, il sent juste la réactivité.</p>
+        </div>
+        <div class="motion-card">
+          <code class="motion-token">--dur-fast</code>
+          <div class="motion-value">150 ms</div>
+          <div class="motion-demo" data-dur="150"></div>
+          <p>Apparition de tooltip, focus ring, micro-feedback. Défaut pour la plupart des transitions UI.</p>
+        </div>
+        <div class="motion-card">
+          <code class="motion-token">--dur-base</code>
+          <div class="motion-value">200 ms</div>
+          <div class="motion-demo" data-dur="200"></div>
+          <p>Switch de thème, ouverture de menu déroulant, slide de drawer.</p>
+        </div>
+        <div class="motion-card">
+          <code class="motion-token">--dur-slow</code>
+          <div class="motion-value">300 ms</div>
+          <div class="motion-demo" data-dur="300"></div>
+          <p>Modale, route change, transition de page. Au-delà de 300 ms, l'utilisateur attend — c'est trop long.</p>
+        </div>
+      </div>
+
+      <h3 class="sub">Courbes</h3>
+      <div class="ease-grid">
+        <div class="ease-card">
+          <code>--ease-standard</code>
+          <div class="ease-formula">cubic-bezier(0.4, 0, 0.2, 1)</div>
+          <p>Défaut. Pour 90 % des transitions UI.</p>
+        </div>
+        <div class="ease-card">
+          <code>--ease-out</code>
+          <div class="ease-formula">cubic-bezier(0, 0, 0.2, 1)</div>
+          <p>Entrées : éléments qui apparaissent (modale, toast).</p>
+        </div>
+        <div class="ease-card">
+          <code>--ease-in</code>
+          <div class="ease-formula">cubic-bezier(0.4, 0, 1, 1)</div>
+          <p>Sorties : éléments qui disparaissent (fermeture).</p>
+        </div>
+      </div>
+    <!-- ============================================================
+         BUTTONS
+    ============================================================ -->
+    <section id="buttons" class="section">
+      <div class="section-head">
+        <div class="kicker">// 07 — Components</div>
+        <h2>Boutons</h2>
+        <p class="lede">
+          Quatre variantes — <strong>primary</strong>, <strong>secondary</strong>, <strong>ghost</strong>, <strong>danger</strong> — et trois tailles.
+          Le primaire porte l'ember ; il n'y a qu'un seul primaire par formulaire, idéalement en bas à droite.
+          Tous les boutons ont un focus ring ember accessible (offset 2 px, ring 2 px).
+        </p>
+      </div>
+
+      <h3 class="sub">Variantes</h3>
+      <div class="cmp-row">
+        <div class="cmp-cell">
+          <button class="btn btn--primary">Lancer le déploiement</button>
+          <code class="cmp-label">primary</code>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--secondary">Annuler</button>
+          <code class="cmp-label">secondary</code>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--ghost">Voir le runbook</button>
+          <code class="cmp-label">ghost</code>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--danger">Tuer le pod</button>
+          <code class="cmp-label">danger</code>
+        </div>
+      </div>
+
+      <h3 class="sub">Tailles</h3>
+      <div class="cmp-row">
+        <div class="cmp-cell">
+          <button class="btn btn--primary btn--sm">Action</button>
+          <code class="cmp-label">sm · 28 px</code>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--primary">Action</button>
+          <code class="cmp-label">md · 36 px (défaut)</code>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--primary btn--lg">Action</button>
+          <code class="cmp-label">lg · 44 px</code>
+        </div>
+      </div>
+
+      <h3 class="sub">États</h3>
+      <div class="cmp-row">
+        <div class="cmp-cell"><button class="btn btn--primary">Default</button><code class="cmp-label">default</code></div>
+        <div class="cmp-cell"><button class="btn btn--primary is-hover">Hover</button><code class="cmp-label">hover</code></div>
+        <div class="cmp-cell"><button class="btn btn--primary is-focus">Focus</button><code class="cmp-label">focus</code></div>
+        <div class="cmp-cell"><button class="btn btn--primary" disabled>Disabled</button><code class="cmp-label">disabled</code></div>
+        <div class="cmp-cell"><button class="btn btn--primary"><span class="btn-spinner"></span>Loading</button><code class="cmp-label">loading</code></div>
+      </div>
+
+      <h3 class="sub">Avec icône</h3>
+      <div class="cmp-row">
+        <div class="cmp-cell">
+          <button class="btn btn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouvel incident
+          </button>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--secondary">
+            Voir détails
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="cmp-cell">
+          <button class="btn btn--ghost btn--icon" aria-label="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <h3 class="sub">Spécifications</h3>
+      <div class="spec-table">
+        <div class="spec-row spec-row--head"><div>Taille</div><div>Height</div><div>Padding X</div><div>Font</div><div>Gap icon</div><div>Radius</div></div>
+        <div class="spec-row"><div><code>sm</code></div><div>28 px</div><div>10 px</div><div>13 / 500</div><div>6 px</div><div>4 px</div></div>
+        <div class="spec-row"><div><code>md</code></div><div>36 px</div><div>14 px</div><div>14 / 500</div><div>8 px</div><div>4 px</div></div>
+        <div class="spec-row"><div><code>lg</code></div><div>44 px</div><div>18 px</div><div>15 / 500</div><div>8 px</div><div>4 px</div></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         INPUTS
+    ============================================================ -->
+    <section id="inputs" class="section">
+      <div class="section-head">
+        <div class="kicker">// 08 — Components</div>
+        <h2>Inputs</h2>
+        <p class="lede">
+          Hauteur de <strong>36 px</strong> alignée sur les boutons <code>md</code>. Border discrète, focus ring ember.
+          Le label vit au-dessus, jamais flottant — la prédictibilité prime sur l'élégance.
+        </p>
+      </div>
+
+      <h3 class="sub">Types</h3>
+      <div class="input-grid">
+        <div class="field">
+          <label class="field-label">E-mail professionnel</label>
+          <input class="input" type="email" placeholder="vous@exemple.com" />
+          <div class="field-help">On ne stocke jamais votre mot de passe.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Recherche</label>
+          <div class="input input--with-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" placeholder="Chercher un incident, un host…" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Description de l'incident</label>
+          <textarea class="input textarea" rows="3" placeholder="Que s'est-il passé ? Symptômes observés, services impactés…"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Token API</label>
+          <input class="input mono" value="lmb_sk_4f7a9c2e1b8d…" readonly />
+          <div class="field-help">Ne pas partager. À renouveler tous les 90 jours.</div>
+        </div>
+      </div>
+
+      <h3 class="sub">États</h3>
+      <div class="input-grid">
+        <div class="field">
+          <label class="field-label">Default</label>
+          <input class="input" placeholder="Saisir une valeur…" />
+        </div>
+        <div class="field">
+          <label class="field-label">Focus</label>
+          <input class="input is-focus" value="vault-eu-west-1" />
+        </div>
+        <div class="field">
+          <label class="field-label">Disabled</label>
+          <input class="input" value="Lecture seule" disabled />
+        </div>
+        <div class="field">
+          <label class="field-label">Error</label>
+          <input class="input is-error" value="prod_database_old" />
+          <div class="field-error">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Le nom doit utiliser des tirets, pas des underscores.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SELECTS & TOGGLES
+    ============================================================ -->
+    <section id="selects" class="section">
+      <div class="section-head">
+        <div class="kicker">// 09 — Components</div>
+        <h2>Selects, switches &amp; checkboxes</h2>
+        <p class="lede">Tous les contrôles d'option : select natif, checkbox custom, radio, switch. Hit-area minimum <code>24 × 24 px</code>.</p>
+      </div>
+
+      <div class="input-grid">
+        <div class="field">
+          <label class="field-label">Région</label>
+          <div class="select-wrap">
+            <select class="input select">
+              <option>eu-west-1 — Frankfurt</option>
+              <option>eu-west-2 — London</option>
+              <option>us-east-1 — N. Virginia</option>
+            </select>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Severité</label>
+          <div class="radio-group">
+            <label class="radio"><input type="radio" name="sev" /><span class="radio-mark"></span>P4 — Info</label>
+            <label class="radio"><input type="radio" name="sev" checked /><span class="radio-mark"></span>P3 — Minor</label>
+            <label class="radio"><input type="radio" name="sev" /><span class="radio-mark"></span>P2 — Major</label>
+            <label class="radio"><input type="radio" name="sev" /><span class="radio-mark"></span>P1 — Critical</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Notifications</label>
+          <div class="checkbox-group">
+            <label class="checkbox"><input type="checkbox" checked /><span class="checkbox-mark"></span>E-mail au commit</label>
+            <label class="checkbox"><input type="checkbox" checked /><span class="checkbox-mark"></span>Webhook RSS</label>
+            <label class="checkbox"><input type="checkbox" /><span class="checkbox-mark"></span>Ping Discord</label>
+            <label class="checkbox"><input type="checkbox" disabled /><span class="checkbox-mark"></span>Push iOS (non configuré)</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Mode maintenance</label>
+          <div class="switch-group">
+            <label class="switch"><input type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span><span>Désactivé</span></label>
+            <label class="switch"><input type="checkbox" checked /><span class="switch-track"><span class="switch-thumb"></span></span><span>Activé jusqu'à 23:00</span></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         BADGES & STATUS
+    ============================================================ -->
+    <section id="badges" class="section">
+      <div class="section-head">
+        <div class="kicker">// 10 — Components</div>
+        <h2>Badges &amp; status</h2>
+        <p class="lede">Petits porteurs d'état. Forme <em>solid</em> sur fond neutre, forme <em>soft</em> dans les listes denses. La forme <em>dot</em> pour la grande densité (tables, sidebars).</p>
+      </div>
+
+      <h3 class="sub">Solid (texte explicite)</h3>
+      <div class="cmp-row">
+        <span class="badge badge--success">Up</span>
+        <span class="badge badge--info">Notice</span>
+        <span class="badge badge--warn">Degraded</span>
+        <span class="badge badge--danger">Down</span>
+        <span class="badge badge--neutral">Draft</span>
+        <span class="badge badge--accent">Online</span>
+      </div>
+
+      <h3 class="sub">Soft (étiquettes plus longues)</h3>
+      <div class="cmp-row">
+        <span class="badge badge--success-soft">healthy · 99.98%</span>
+        <span class="badge badge--info-soft">scheduled · vendredi 22:00</span>
+        <span class="badge badge--warn-soft">p95 latency &gt; 200 ms</span>
+        <span class="badge badge--danger-soft">incident LAM-1847 open</span>
+        <span class="badge badge--neutral-soft">last sync · 2 min ago</span>
+      </div>
+
+      <h3 class="sub">Status dots (pour tables denses)</h3>
+      <div class="status-list">
+        <div class="status-row"><span class="dot dot--success"></span><strong>vault-eu-west-1</strong><code>healthy</code><span>p95 47 ms</span></div>
+        <div class="status-row"><span class="dot dot--warn"></span><strong>db-replica-2</strong><code>degraded</code><span>p95 234 ms</span></div>
+        <div class="status-row"><span class="dot dot--danger"></span><strong>edge-proxy-fra</strong><code>down</code><span>since 09:14</span></div>
+        <div class="status-row"><span class="dot dot--info"></span><strong>worker-batch-3</strong><code>maintenance</code><span>until 23:00</span></div>
+      </div>
+
+      <h3 class="sub">Avec point de pulsation (live)</h3>
+      <div class="cmp-row">
+        <span class="badge badge--accent"><span class="pulse"></span>Live · streaming</span>
+        <span class="badge badge--danger"><span class="pulse pulse--danger"></span>Build cassé</span>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ALERTS
+    ============================================================ -->
+    <section id="alerts" class="section">
+      <div class="section-head">
+        <div class="kicker">// 11 — Components</div>
+        <h2>Alertes</h2>
+        <p class="lede">Pour les messages contextuels — au-dessus d'une page, à l'intérieur d'un formulaire, dans une card. Quatre tonalités sémantiques. <strong>Une seule alerte par contexte</strong> ; au-delà, on liste.</p>
+      </div>
+
+      <div class="alert alert--info">
+        <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div class="alert-body">
+          <strong>Maintenance planifiée vendredi 22:00 → 23:00.</strong>
+          <p>Les services en région <code>eu-west-1</code> seront redémarrés par lots. Aucune coupure attendue. <a href="#">Voir le runbook</a>.</p>
+        </div>
+        <button class="alert-close" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+
+      <div class="alert alert--success">
+        <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="alert-body">
+          <strong>Déploiement <code>v2.18.4</code> en production.</strong>
+          <p>Pipeline vert · 47 tests passés · 0 incident détecté dans les 10 dernières minutes.</p>
+        </div>
+      </div>
+
+      <div class="alert alert--warn">
+        <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="alert-body">
+          <strong>Quota d'API à 87% de la limite mensuelle.</strong>
+          <p>Plafond atteint le 24 du mois au rythme actuel. <a href="#">Augmenter le plan →</a></p>
+        </div>
+      </div>
+
+      <div class="alert alert--danger">
+        <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="alert-body">
+          <strong>Incident LAM-1847 — edge-proxy-fra DOWN depuis 09:14.</strong>
+          <p>Trafic basculé sur <code>edge-proxy-ams</code>. Marie L. investigue. <a href="#">Suivre le thread →</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         CARDS
+    ============================================================ -->
+    <section id="cards" class="section">
+      <div class="section-head">
+        <div class="kicker">// 12 — Components</div>
+        <h2>Cards</h2>
+        <p class="lede">Surface unitaire d'information. Toujours sur <code>--bg-elevated</code>, jamais directement sur le fond.</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-eyebrow">// SERVICE</div>
+              <h4 class="card-title">vault-eu-west-1</h4>
+            </div>
+            <span class="badge badge--success">Up</span>
+          </div>
+          <div class="card-stats">
+            <div><span class="stat-k">p95</span><span class="stat-v">47<small>ms</small></span></div>
+            <div><span class="stat-k">RPS</span><span class="stat-v">1,284</span></div>
+            <div><span class="stat-k">Uptime 30j</span><span class="stat-v">99.98<small>%</small></span></div>
+          </div>
+          <div class="card-foot">
+            <span class="mono small">last sync · 12s ago</span>
+            <button class="btn btn--ghost btn--sm">Détails →</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-eyebrow">// INCIDENT · LAM-1847</div>
+              <h4 class="card-title">edge-proxy-fra — DOWN</h4>
+            </div>
+            <span class="badge badge--danger"><span class="pulse pulse--danger"></span>Open</span>
+          </div>
+          <p class="card-body">Trafic basculé sur <code>edge-proxy-ams</code>. Investigation par <strong>Marie L.</strong> depuis 09:16.</p>
+          <div class="card-foot">
+            <span class="mono small">opened 09:14 · 23 min</span>
+            <button class="btn btn--secondary btn--sm">Rejoindre</button>
+          </div>
+        </div>
+
+        <div class="card card--accent">
+          <div class="card-head">
+            <div>
+              <div class="card-eyebrow" style="color:var(--accent)">// NOW</div>
+              <h4 class="card-title">paradow.dev v0.4</h4>
+            </div>
+          </div>
+          <p class="card-body">Section <strong>/now</strong> ajoutée. Refactor du RSS. Mis en ligne dimanche.</p>
+          <div class="card-foot">
+            <span class="mono small">shipped 2j ago</span>
+            <button class="btn btn--ghost btn--sm">Calendrier</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         TABLES
+    ============================================================ -->
+    <section id="tables" class="section">
+      <div class="section-head">
+        <div class="kicker">// 13 — Components</div>
+        <h2>Tables</h2>
+        <p class="lede">
+          Densité élevée par défaut — c'est l'élément le plus consulté de tout outil interne. Lignes de <strong>36 px</strong>, ligne alternée discrète, headers en mono pour signaler qu'on parle données.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:32px"><label class="checkbox checkbox--th"><input type="checkbox" /><span class="checkbox-mark"></span></label></th>
+              <th>Service</th>
+              <th>Région</th>
+              <th>Status</th>
+              <th class="num">p95</th>
+              <th class="num">RPS</th>
+              <th>Dernière sync</th>
+              <th style="width:32px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><label class="checkbox checkbox--th"><input type="checkbox" /><span class="checkbox-mark"></span></label></td>
+              <td><strong>vault</strong> <span class="mono small ink-3">vault-eu-west-1</span></td>
+              <td>eu-west-1</td>
+              <td><span class="dot dot--success"></span> Up</td>
+              <td class="num mono">47<small>ms</small></td>
+              <td class="num mono">1,284</td>
+              <td class="mono small ink-3">12s ago</td>
+              <td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Actions"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><label class="checkbox checkbox--th"><input type="checkbox" /><span class="checkbox-mark"></span></label></td>
+              <td><strong>db-replica</strong> <span class="mono small ink-3">db-replica-2</span></td>
+              <td>eu-west-1</td>
+              <td><span class="dot dot--warn"></span> Degraded</td>
+              <td class="num mono" style="color:var(--warn)">234<small>ms</small></td>
+              <td class="num mono">812</td>
+              <td class="mono small ink-3">8s ago</td>
+              <td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Actions"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><label class="checkbox checkbox--th"><input type="checkbox" checked /><span class="checkbox-mark"></span></label></td>
+              <td><strong>edge-proxy</strong> <span class="mono small ink-3">edge-proxy-fra</span></td>
+              <td>eu-central-1</td>
+              <td><span class="dot dot--danger"></span> Down</td>
+              <td class="num mono ink-4">—</td>
+              <td class="num mono">0</td>
+              <td class="mono small ink-3">since 09:14</td>
+              <td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Actions"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button></td>
+            </tr>
+            <tr>
+              <td><label class="checkbox checkbox--th"><input type="checkbox" /><span class="checkbox-mark"></span></label></td>
+              <td><strong>worker-batch</strong> <span class="mono small ink-3">worker-batch-3</span></td>
+              <td>eu-west-2</td>
+              <td><span class="dot dot--info"></span> Maintenance</td>
+              <td class="num mono ink-4">—</td>
+              <td class="num mono ink-4">—</td>
+              <td class="mono small ink-3">until 23:00</td>
+              <td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Actions"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         NAVIGATION
+    ============================================================ -->
+    <section id="nav" class="section">
+      <div class="section-head">
+        <div class="kicker">// 14 — Components</div>
+        <h2>Navigation</h2>
+        <p class="lede">Barre supérieure pour la navigation primaire ; rail latéral pour la navigation contextuelle d'un projet. L'élément actif porte une <strong>bordure gauche ember</strong> (rail) ou un <strong>underline ember</strong> (top).</p>
+      </div>
+
+      <h3 class="sub">Top navigation</h3>
+      <div class="demo-navbar">
+        <div class="demo-navbar-brand">
+          <svg viewBox="0 0 100 100" width="22" height="22"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 22 L 64 50 L 28 78"></path></g><rect x="70" y="72" width="18" height="8" fill="var(--accent)"/></svg>
+          <strong>Paradow</strong>
+        </div>
+        <nav class="demo-navbar-links">
+          <a class="active">Dashboard</a>
+          <a>Services</a>
+          <a>Builds <span class="badge badge--danger" style="margin-left:6px">3</span></a>
+          <a>Logs</a>
+          <a>Now</a>
+        </nav>
+        <div class="demo-navbar-end">
+          <button class="btn btn--ghost btn--icon btn--sm" aria-label="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+          <div class="avatar">ML</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Side rail (contextuel)</h3>
+      <div class="demo-rail">
+        <div class="demo-rail-head">
+          <div class="mono small ink-3" style="letter-spacing:0.15em">// PROJECT</div>
+          <div style="font-weight:600;margin-top:4px">vault-prod</div>
+        </div>
+        <nav class="demo-rail-nav">
+          <a><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Overview</a>
+          <a class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="1.5"/><rect x="2" y="13" width="20" height="8" rx="1.5"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>Services</a>
+          <a><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>Incidents</a>
+          <a><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>Runbooks</a>
+          <a><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
+        </nav>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         TABS
+    ============================================================ -->
+    <section id="tabs" class="section">
+      <div class="section-head">
+        <div class="kicker">// 15 — Components</div>
+        <h2>Tabs</h2>
+        <p class="lede">Navigation horizontale entre vues équivalentes d'un même objet — détails, métriques, logs. Underline ember sur l'onglet actif.</p>
+      </div>
+
+      <div class="demo-tabs">
+        <div class="demo-tabs-bar">
+          <a class="active">Overview</a>
+          <a>Metrics</a>
+          <a>Logs <code class="ink-3">847</code></a>
+          <a>Events</a>
+          <a>Settings</a>
+        </div>
+        <div class="demo-tabs-content">
+          <p class="ink-2">Contenu de l'onglet sélectionné. Ne pas dépasser 5 onglets ; au-delà, basculer en sidebar ou en menu déroulant.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         VOICE & TONE
+    ============================================================ -->
+    <section id="voice" class="section">
+      <div class="section-head">
+        <div class="kicker">// 16 — Guidelines</div>
+        <h2>Voice &amp; tone</h2>
+        <p class="lede">Paradow parle comme un dev senior un peu fatigué : <strong>direct, technique, jamais paniqué</strong>. On respecte l'intelligence du lecteur, on évite l'enthousiasme commercial, et on assume que le sujet est sérieux sans le rendre lourd.</p>
+      </div>
+
+      <h3 class="sub">Principes</h3>
+      <div class="voice-grid">
+        <div class="voice-card">
+          <div class="voice-num">01</div>
+          <h4>Précis, pas verbeux</h4>
+          <p>Une phrase = un fait. Si un chiffre peut remplacer un adverbe, on choisit le chiffre.</p>
+        </div>
+        <div class="voice-card">
+          <div class="voice-num">02</div>
+          <h4>Calme sous pression</h4>
+          <p>Même quand tout brûle, on n'écrit pas en majuscules, on n'ajoute pas de point d'exclamation. La gravité tient à la donnée.</p>
+        </div>
+        <div class="voice-card">
+          <div class="voice-num">03</div>
+          <h4>Concret avant abstrait</h4>
+          <p>"Pipeline vert · 47 tests passés" plutôt que "Tout fonctionne parfaitement bien".</p>
+        </div>
+        <div class="voice-card">
+          <div class="voice-num">04</div>
+          <h4>Honnête sur l'échec</h4>
+          <p>On dit "down depuis 09:14", pas "expérimente des difficultés temporaires". L'utilisateur préfère savoir.</p>
+        </div>
+      </div>
+
+      <h3 class="sub">À faire vs à éviter</h3>
+      <div class="voice-table">
+        <div class="voice-row voice-row--head">
+          <div>Contexte</div><div>À éviter</div><div>À faire</div>
+        </div>
+        <div class="voice-row">
+          <div>Erreur de saisie</div>
+          <div class="bad">"Oups ! Une petite erreur s'est glissée 😅"</div>
+          <div class="good">"Le nom doit utiliser des tirets, pas des underscores."</div>
+        </div>
+        <div class="voice-row">
+          <div>Build cassé</div>
+          <div class="bad">"Oups, quelque chose s'est mal passé !"</div>
+          <div class="good">"build #482 failed — eslint sur src/router.ts:42. retry après fix."</div>
+        </div>
+        <div class="voice-row">
+          <div>Succès d'action</div>
+          <div class="bad">"Bravo ! Votre déploiement a été un succès !"</div>
+          <div class="good">"Déployé en 2 min 14s. 0 erreur."</div>
+        </div>
+        <div class="voice-row">
+          <div>Action destructrice</div>
+          <div class="bad">"Êtes-vous vraiment sûr ?"</div>
+          <div class="good">"Supprimer 4 hosts. Cette action est irréversible."</div>
+        </div>
+        <div class="voice-row">
+          <div>Bouton de soumission</div>
+          <div class="bad">"Envoyer"</div>
+          <div class="good">"Lancer le déploiement" (verbe + objet)</div>
+        </div>
+        <div class="voice-row">
+          <div>Empty state</div>
+          <div class="bad">"Aucun élément 🤷"</div>
+          <div class="good">"Aucun incident ouvert. Tout est calme."</div>
+        </div>
+      </div>
+
+      <h3 class="sub">Vocabulaire</h3>
+      <div class="vocab-grid">
+        <div class="vocab-card">
+          <strong>Termes maison</strong>
+          <ul>
+            <li><code>shipped</code> — pas "déployé" ni "livré"</li>
+            <li><code>build</code> — pas "compilation"</li>
+            <li><code>online / offline</code> — pas "connecté / déconnecté"</li>
+            <li><code>healthy / degraded / down</code> — pas "OK / pas OK"</li>
+            <li><code>p95, p99</code> — pas "performance"</li>
+          </ul>
+        </div>
+        <div class="vocab-card">
+          <strong>Tutoiement / vouvoiement</strong>
+          <ul>
+            <li><strong>Interne</strong> (outils, dashboards) : tutoiement direct.</li>
+            <li><strong>Externe</strong> (site, signature mail) : vouvoiement neutre.</li>
+            <li>Pas de "tu/vous" au sein d'une même surface — choisir et tenir.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         DO'S & DON'TS
+    ============================================================ -->
+    <section id="dosdonts" class="section">
+      <div class="section-head">
+        <div class="kicker">// 17 — Guidelines</div>
+        <h2>Do's &amp; Don'ts du logo</h2>
+        <p class="lede">Le mark &gt;_prompt est solide mais sensible aux trahisons habituelles. Six règles pour garder son intégrité.</p>
+      </div>
+
+      <div class="dd-grid">
+        <!-- DO 01 -->
+        <div class="dd-tile dd-tile--ok">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--ok">Do</div>
+          <p>Respecter la zone de protection — au minimum la hauteur du chevron tout autour.</p>
+        </div>
+
+        <!-- DO 02 -->
+        <div class="dd-tile dd-tile--ok">
+          <div class="dd-stage" style="background:#F4F1EA">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#0E1116" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--ok">Do</div>
+          <p>Utiliser l'encre <code>#0E1116</code> sur fond clair, le crème <code>#F4F1EA</code> sur fond sombre.</p>
+        </div>
+
+        <!-- DO 03 -->
+        <div class="dd-tile dd-tile--ok">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#0E1116"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--ok">Do</div>
+          <p>En mono (gravure, fax, fax low-fi), neutraliser le curseur dans la couleur de l'encre.</p>
+        </div>
+
+        <!-- DON'T 01 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:linear-gradient(135deg,#FF5C57,#FF5EC4)">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas de gradient en arrière-plan. Le chevron vit sur du plein, jamais sur du bruit chromatique.</p>
+        </div>
+
+        <!-- DON'T 02 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120" style="transform:rotate(12deg) scale(0.85)"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas d'inclinaison, pas de stretch, pas de "dynamisme" cosmétique. Le mark reste droit.</p>
+        </div>
+
+        <!-- DON'T 03 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#FF5EC4" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#5DD3FF"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas de coloration libre du chevron ou du curseur. Trois couleurs seulement : encre, papier, ember.</p>
+        </div>
+
+        <!-- DON'T 04 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter" style="filter:drop-shadow(0 0 12px #FF5C57)"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57" style="filter:drop-shadow(0 0 8px #FF5C57)"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas de glow, pas d'ombre portée, pas de "feu". Le calme est dans la propreté.</p>
+        </div>
+
+        <!-- DON'T 05 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:#0E1116">
+            <svg viewBox="0 0 140 100" width="120" style="opacity:0.35"><g fill="none" stroke="#F4F1EA" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas de logo translucide (sauf masque/watermark assumé en grand format). En usage standard : 100% opaque.</p>
+        </div>
+
+        <!-- DON'T 06 -->
+        <div class="dd-tile dd-tile--no">
+          <div class="dd-stage" style="background:#FF5C57">
+            <svg viewBox="0 0 140 100" width="120"><g fill="none" stroke="#0E1116" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="#FF5C57"/></svg>
+          </div>
+          <div class="dd-tag dd-tag--no">Don't</div>
+          <p>Pas de fond ember. L'ember est un accent, jamais une surface entière. Curseur invisible si fond = curseur.</p>
+        </div>
+      </div>
+
+      <h3 class="sub">Tailles minimales</h3>
+      <div class="size-row">
+        <div class="size-cell">
+          <div class="size-stage"><svg viewBox="0 0 100 100" width="16" height="16"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 22 L 64 50 L 28 78"></path></g><rect x="70" y="72" width="18" height="8" fill="var(--accent)"/></svg></div>
+          <code>16 px</code><span>Favicon — minimum absolu</span>
+        </div>
+        <div class="size-cell">
+          <div class="size-stage"><svg viewBox="0 0 100 100" width="24" height="24"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 22 L 64 50 L 28 78"></path></g><rect x="70" y="72" width="18" height="8" fill="var(--accent)"/></svg></div>
+          <code>24 px</code><span>UI — défaut mark only</span>
+        </div>
+        <div class="size-cell">
+          <div class="size-stage"><svg viewBox="0 0 140 100" width="120" height="86"><g fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"><path d="M 28 18 L 76 50 L 28 82"></path></g><rect x="92" y="62" width="22" height="10" fill="var(--accent)"/></svg></div>
+          <code>120 px</code><span>Lockup horizontal — minimum lisible</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         FOOTER
+    ============================================================ -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div>
+          <div class="mono" style="font-size:10px;letter-spacing:0.2em;color:var(--ink-3)">// PARADOW · DESIGN SYSTEM</div>
+          <div style="margin-top:6px;font-size:13px;color:var(--ink-2)">v1.0 · May 2026 — pseudo de dev, joueur, identité web</div>
+        </div>
+        <div class="mono" style="font-size:12px;color:var(--accent)">&gt;_ always online.</div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Theme toggle — persistent
+  (function() {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const label = btn.querySelector('.theme-toggle-label');
+    const saved = localStorage.getItem('paradow-theme') || 'dark';
+    root.setAttribute('data-theme', saved);
+    label.textContent = saved === 'dark' ? 'Dark' : 'Light';
+    btn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      label.textContent = next === 'dark' ? 'Dark' : 'Light';
+      localStorage.setItem('paradow-theme', next);
+    });
+  })();
+
+  // TOC active link on scroll
+  (function() {
+    const links = document.querySelectorAll('.toc a');
+    const sections = [...links].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = '#' + e.target.id;
+          links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+        }
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    sections.forEach(s => obs.observe(s));
+  })();
+</script>
+
+</body>
+</html>

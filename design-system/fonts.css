@@ -1,0 +1,12 @@
+/* ============================================================
+   PARADOW · FONTS
+   Imports Google Fonts: Space Grotesk + Fira Code
+============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap');
+
+/* Or, for offline / self-hosted:
+   1. Download from https://fonts.google.com
+   2. Place .woff2 files in fonts/
+   3. Replace this file with @font-face declarations
+*/

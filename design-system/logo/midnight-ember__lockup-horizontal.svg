@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" width="600" height="160">
+  <rect width="600" height="160" fill="#0E1116"></rect>
+  <g transform="translate(36 30) scale(1.0)">
+    <g fill="none" stroke="#F4F1EA" stroke-width="11" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M 24 22 L 80 60 L 24 98"></path>
+    </g>
+    <rect x="92" y="86" width="24" height="12" fill="#FF5C57"></rect>
+  </g>
+  <text x="170" y="106" font-family="Space Grotesk, system-ui, sans-serif" font-weight="600" font-size="78" letter-spacing="-2" fill="#F4F1EA">Paradow</text>
+</svg>

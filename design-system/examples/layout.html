@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>Paradow · Layout example</title>
+<link rel="icon" href="../logo/midnight-ember__favicon-32.svg">
+<link rel="stylesheet" href="../fonts.css">
+<link rel="stylesheet" href="../tokens/tokens.css">
+<style>
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.02em; }
+  .brand img { display: block; }
+  .nav { display: flex; gap: 14px; font-size: 13px; color: var(--ink-3); align-items: center; }
+  .online {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: var(--r-pill);
+    background: var(--success-soft); color: var(--success);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  }
+  .online::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+  main { max-width: 720px; margin: 80px auto; padding: 0 28px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--ink-3); text-transform: uppercase; margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 56px; line-height: 1.0; letter-spacing: -0.035em; margin: 0 0 24px;
+    text-wrap: balance;
+  }
+  h1 .accent { color: var(--accent); }
+  p { font-size: 16px; color: var(--ink-2); line-height: 1.6; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#">
+      <img src="../logo/midnight-ember__mark-square.svg" width="28" height="28" alt="Paradow">
+      <span>paradow</span>
+    </a>
+    <nav class="nav">
+      <a href="#">Work</a>
+      <a href="#">Writing</a>
+      <a href="#">Now</a>
+      <span class="online">online</span>
+    </nav>
+  </header>
+
+  <main>
+    <div class="eyebrow">// home</div>
+    <h1>Dev, joueur, bricoleur du <span class="accent">web</span>.</h1>
+    <p>Je construis des choses sur internet, je les casse parfois, et je les documente ici. <strong style="color:var(--ink)">always online.</strong></p>
+  </main>
+</body>
+</html>

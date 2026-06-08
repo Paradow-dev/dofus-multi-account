@@ -1,0 +1,82 @@
+/**
+ * Types partagés entre main, preload et renderer.
+ * Pas de dépendance Electron/Node ici — uniquement des structures de données.
+ */
+
+export type LayoutMode = 'none' | 'grid' | 'maximize-active'
+
+/** Un compte configuré par l'utilisateur, associé à une fenêtre Dofus par titre. */
+export interface AccountConfig {
+  /** Identifiant stable généré à la création (ne change jamais). */
+  id: string
+  /** Libellé affiché (ex. nom du personnage). */
+  label: string
+  /** Sous-chaîne recherchée dans le titre de la fenêtre pour la réconciliation. */
+  matchTitle: string
+  /** Position dans l'ordre de cycle (0 = premier). */
+  order: number
+  /** Accélérateur Electron dédié (ex. "Ctrl+Alt+1"), optionnel. */
+  shortcut?: string
+}
+
+/** Configuration applicative complète, persistée via electron-store. */
+export interface AppConfig {
+  accounts: AccountConfig[]
+  /** Accélérateur du cycle « compte suivant ». */
+  cycleNext: string
+  /** Accélérateur du cycle « compte précédent ». */
+  cyclePrev: string
+  /** Disposition appliquée lors d'un changement de compte. */
+  layoutMode: LayoutMode
+  /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
+  enabled: boolean
+}
+
+/** Une fenêtre Dofus détectée à l'exécution. */
+export interface DetectedWindow {
+  /** Handle natif (HWND) — change à chaque lancement du jeu. */
+  handle: number
+  title: string
+  bounds: { x: number; y: number; width: number; height: number }
+  /** id du compte auquel cette fenêtre a été réconciliée, le cas échéant. */
+  accountId?: string
+}
+
+/** Résultat de l'enregistrement des raccourcis, remonté à l'UI. */
+export interface ShortcutRegistration {
+  accelerator: string
+  /** Description de l'action (ex. "Compte: Iop", "Cycle suivant"). */
+  label: string
+  /** false si globalShortcut.register a échoué (conflit avec une autre app). */
+  ok: boolean
+}
+
+/** Canaux IPC — source unique de vérité pour main, preload et renderer. */
+export const IPC = {
+  configGet: 'config:get',
+  configSet: 'config:set',
+  windowsList: 'windows:list',
+  actionFocus: 'action:focus',
+  actionCycle: 'action:cycle',
+  shortcutsState: 'shortcuts:state'
+} as const
+
+export type CycleDirection = 'next' | 'prev'
+
+export const DEFAULT_CONFIG: AppConfig = {
+  accounts: [],
+  cycleNext: 'Ctrl+Alt+Right',
+  cyclePrev: 'Ctrl+Alt+Left',
+  layoutMode: 'maximize-active',
+  enabled: true
+}
+
+/** API exposée au renderer via contextBridge (window.api). */
+export interface RendererApi {
+  getConfig(): Promise<AppConfig>
+  setConfig(config: AppConfig): Promise<{ config: AppConfig; shortcuts: ShortcutRegistration[] }>
+  listWindows(): Promise<DetectedWindow[]>
+  focusAccount(accountId: string): Promise<boolean>
+  cycle(direction: CycleDirection): Promise<boolean>
+  onShortcutsState(cb: (registrations: ShortcutRegistration[]) => void): () => void
+}

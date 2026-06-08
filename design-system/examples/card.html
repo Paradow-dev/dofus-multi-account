@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>Paradow · Card example</title>
+<link rel="stylesheet" href="../fonts.css">
+<link rel="stylesheet" href="../tokens/tokens.css">
+<style>
+  body { padding: 40px; }
+  .card {
+    max-width: 360px;
+    background: var(--bg-elevated); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase;
+  }
+  .title { font-size: 18px; font-weight: 600; letter-spacing: -0.025em; }
+  .body { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+  .foot { display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">// NOW</div>
+    <div class="title">paradow.dev v0.4</div>
+    <p class="body">Section <strong>/now</strong> ajoutée. Refactor du RSS. Mis en ligne dimanche.</p>
+    <div class="foot">
+      <span class="dot"></span>
+      <span class="meta">shipped 2j ago · always online.</span>
+    </div>
+  </div>
+</body>
+</html>

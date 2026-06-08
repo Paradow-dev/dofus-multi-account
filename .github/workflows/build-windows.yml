@@ -1,0 +1,45 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Les runners windows-latest embarquent déjà Visual Studio + la charge
+      # "Desktop development with C++", donc node-gyp compile node-window-manager
+      # sans installation supplémentaire.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Package (.exe)
+        run: npm run package
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dofus-multi-account-windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+      # Sur un tag vX.Y.Z : publie les .exe dans une Release GitHub
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe

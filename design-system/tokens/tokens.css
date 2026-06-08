@@ -1,0 +1,116 @@
+/* ============================================================
+   PARADOW · TOKENS
+   Drop-in CSS variables. Toggle dark/light via <html data-theme="…">
+============================================================ */
+
+:root[data-theme="dark"],
+:root:not([data-theme]) {
+  /* Surfaces */
+  --bg: #0E1116;
+  --bg-elevated: #161A21;
+  --bg-subtle: #1A1D23;
+
+  /* Text */
+  --ink: #F4F1EA;
+  --ink-2: #C9CCD2;
+  --ink-3: #8E929A;
+  --ink-4: #5C6068;
+
+  /* Lines */
+  --line: rgba(244,241,234,0.10);
+  --line-strong: rgba(244,241,234,0.18);
+
+  /* Accent — ember */
+  --accent: #FF5C57;
+  --accent-hover: #E04A45;
+  --accent-soft: rgba(255,92,87,0.14);
+  --accent-on: #FFFFFF;
+
+  /* Semantic */
+  --info: #6BBEF1;     --info-soft: rgba(107,190,241,0.14);
+  --warn: #F1C36B;     --warn-soft: rgba(241,195,107,0.14);
+  --danger: #F16B6B;   --danger-soft: rgba(241,107,107,0.14);
+  --success: #7DC36B;  --success-soft: rgba(125,195,107,0.14);
+
+  /* Shadow */
+  --shadow-1: 0 1px 0 rgba(0,0,0,0.4);
+  --shadow-2: 0 4px 14px -4px rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] {
+  --bg: #F4F1EA;
+  --bg-elevated: #FFFFFF;
+  --bg-subtle: #EAE7E0;
+  --ink: #0E1116;
+  --ink-2: #3D424A;
+  --ink-3: #6B6F77;
+  --ink-4: #9DA1A8;
+  --line: rgba(14,17,22,0.10);
+  --line-strong: rgba(14,17,22,0.18);
+  --accent: #FF5C57;
+  --accent-hover: #E04A45;
+  --accent-soft: rgba(255,92,87,0.18);
+  --accent-on: #FFFFFF;
+  --info: #2E8AC2;     --info-soft: rgba(46,138,194,0.12);
+  --warn: #C58A2E;     --warn-soft: rgba(197,138,46,0.12);
+  --danger: #C24545;   --danger-soft: rgba(194,69,69,0.12);
+  --success: #4F9E3D;  --success-soft: rgba(79,158,61,0.16);
+  --shadow-1: 0 1px 0 rgba(14,17,22,0.06);
+  --shadow-2: 0 4px 14px -4px rgba(14,17,22,0.12);
+}
+
+/* Type families */
+:root {
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Spacing scale (multiples of 4) */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
+
+/* Radius scale */
+:root {
+  --r-sm: 2px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --r-xl: 12px;
+  --r-pill: 99px;
+}
+
+/* Motion */
+:root {
+  --dur-instant: 75ms;
+  --dur-fast: 150ms;
+  --dur-normal: 200ms;
+  --dur-slow: 300ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Body baseline */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background 200ms ease, color 200ms ease;
+}
+code, pre, .mono {
+  font-family: var(--font-mono);
+}
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--accent); }
