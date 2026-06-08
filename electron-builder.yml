@@ -17,3 +17,11 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+# Fournisseur de mise à jour : Releases GitHub (repo public).
+# electron-builder génère app-update.yml dans l'app + latest.yml dans la Release,
+# tous deux nécessaires à electron-updater.
+publish:
+  provider: github
+  owner: Paradow-dev
+  repo: dofus-multi-account
+  releaseType: release

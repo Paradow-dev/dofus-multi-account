@@ -96,3 +96,12 @@
 .table-wrap {
   overflow-x: auto;
 }
+
+/* Indicateur de mise à jour dans l'en-tête */
+.upd-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}

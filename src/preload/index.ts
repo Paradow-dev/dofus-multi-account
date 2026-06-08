@@ -4,7 +4,8 @@ import {
   type AppConfig,
   type CycleDirection,
   type RendererApi,
-  type ShortcutRegistration
+  type ShortcutRegistration,
+  type UpdateState
 } from '@shared/types'
 
 const api: RendererApi = {
@@ -18,6 +19,13 @@ const api: RendererApi = {
       cb(registrations)
     ipcRenderer.on(IPC.shortcutsState, listener)
     return () => ipcRenderer.removeListener(IPC.shortcutsState, listener)
+  },
+  checkUpdate: () => ipcRenderer.invoke(IPC.updateCheck),
+  installUpdate: () => ipcRenderer.invoke(IPC.updateInstall),
+  onUpdateState: (cb: (state: UpdateState) => void) => {
+    const listener = (_e: unknown, s: UpdateState): void => cb(s)
+    ipcRenderer.on(IPC.updateState, listener)
+    return () => ipcRenderer.removeListener(IPC.updateState, listener)
   }
 }
 

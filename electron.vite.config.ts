@@ -5,8 +5,8 @@ export default defineConfig({
   main: {
     build: {
       rollupOptions: {
-        // node-window-manager is a native addon — keep it external (not bundled)
-        external: ['node-window-manager', 'electron-store']
+        // Modules natifs / node-only : externes (non bundlés)
+        external: ['node-window-manager', 'electron-store', 'electron-updater']
       }
     },
     resolve: {

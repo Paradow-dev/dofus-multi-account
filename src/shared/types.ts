@@ -55,6 +55,25 @@ export interface ShortcutRegistration {
   ok: boolean
 }
 
+/** Statut de la mise à jour automatique. */
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdateState {
+  status: UpdateStatus
+  /** Version disponible (available/downloaded). */
+  version?: string
+  /** Progression du téléchargement en % (downloading). */
+  percent?: number
+  /** Message d'erreur (error). */
+  error?: string
+}
+
 /** Canaux IPC — source unique de vérité pour main, preload et renderer. */
 export const IPC = {
   configGet: 'config:get',
@@ -62,7 +81,10 @@ export const IPC = {
   windowsList: 'windows:list',
   actionFocus: 'action:focus',
   actionCycle: 'action:cycle',
-  shortcutsState: 'shortcuts:state'
+  shortcutsState: 'shortcuts:state',
+  updateState: 'update:state',
+  updateCheck: 'update:check',
+  updateInstall: 'update:install'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -83,4 +105,10 @@ export interface RendererApi {
   focusAccount(accountId: string): Promise<boolean>
   cycle(direction: CycleDirection): Promise<boolean>
   onShortcutsState(cb: (registrations: ShortcutRegistration[]) => void): () => void
+  /** Lance une vérification manuelle de mise à jour. */
+  checkUpdate(): Promise<void>
+  /** Quitte et installe la mise à jour téléchargée. */
+  installUpdate(): Promise<void>
+  /** S'abonne aux changements d'état de mise à jour. Retourne une fonction de désabonnement. */
+  onUpdateState(cb: (state: UpdateState) => void): () => void
 }

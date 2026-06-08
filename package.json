@@ -1,6 +1,6 @@
 {
   "name": "dofus-multi-account",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Raccourcis globaux pour jouer en multi-compte sur Dofus (gestion de fenêtres Windows)",
   "author": "paradow",
   "license": "MIT",
@@ -10,10 +10,12 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "electron-vite preview",
-    "package": "electron-vite build && electron-builder --win --config electron-builder.yml --publish never"
+    "package": "electron-vite build && electron-builder --win --config electron-builder.yml --publish never",
+    "release": "electron-vite build && electron-builder --win --config electron-builder.yml --publish always"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.9",
     "node-window-manager": "^2.2.4",
     "zod": "^3.23.8"
   },

@@ -3,6 +3,7 @@ import { IPC, type AppConfig, type CycleDirection } from '@shared/types'
 import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
 import { applyConfig, getConfig } from './state'
+import { checkForUpdates, quitAndInstall } from './updater'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -21,4 +22,7 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.actionCycle, (_e, direction: CycleDirection) =>
     cycle(getConfig(), direction)
   )
+
+  ipcMain.handle(IPC.updateCheck, () => checkForUpdates())
+  ipcMain.handle(IPC.updateInstall, () => quitAndInstall())
 }

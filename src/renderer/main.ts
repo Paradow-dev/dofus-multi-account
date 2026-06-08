@@ -9,7 +9,8 @@ import type {
   AccountConfig,
   AppConfig,
   DetectedWindow,
-  ShortcutRegistration
+  ShortcutRegistration,
+  UpdateState
 } from '@shared/types'
 import { h, clear } from './ui/dom'
 import { eventToAccelerator } from './ui/accelerator'
@@ -18,6 +19,7 @@ interface State {
   config: AppConfig
   windows: DetectedWindow[]
   registrations: ShortcutRegistration[]
+  update: UpdateState
   showAllWindows: boolean
   dirty: boolean
 }
@@ -32,6 +34,7 @@ const state: State = {
   },
   windows: [],
   registrations: [],
+  update: { status: 'idle' },
   showAllWindows: false,
   dirty: false
 }
@@ -43,6 +46,10 @@ async function init(): Promise<void> {
   await refreshWindows()
   window.api.onShortcutsState((regs) => {
     state.registrations = regs
+    render()
+  })
+  window.api.onUpdateState((s) => {
+    state.update = s
     render()
   })
   render()
@@ -139,7 +146,32 @@ function renderTopbar(): HTMLElement {
   }) as HTMLButtonElement
   saveBtn.disabled = !state.dirty
 
-  return h('header', { class: 'topbar' }, [brand, h('div', { class: 'topbar-meta' }, [enabled, saveBtn])])
+  const meta = h('div', { class: 'topbar-meta' }, [enabled, saveBtn])
+  const upd = renderUpdate()
+  if (upd) meta.prepend(upd)
+
+  return h('header', { class: 'topbar' }, [brand, meta])
+}
+
+/** Indicateur de mise à jour dans l'en-tête (null si rien à montrer). */
+function renderUpdate(): HTMLElement | null {
+  const u = state.update
+  switch (u.status) {
+    case 'downloaded':
+      return h('button', {
+        class: 'btn btn--primary btn--sm',
+        text: `Redémarrer pour installer${u.version ? ` v${u.version}` : ''}`,
+        on: { click: () => void window.api.installUpdate() }
+      })
+    case 'downloading':
+      return h('span', { class: 'upd-note', text: `MAJ… ${u.percent ?? 0}%` })
+    case 'available':
+      return h('span', { class: 'upd-note', text: 'MAJ disponible' })
+    case 'checking':
+      return h('span', { class: 'upd-note', text: 'Recherche MAJ…' })
+    default:
+      return null
+  }
 }
 
 function renderConflicts(conflicts: ShortcutRegistration[]): HTMLElement {

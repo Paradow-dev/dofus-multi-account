@@ -27,11 +27,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Package (.exe)
+      # Sur une branche : build seul (pas de publication).
+      - name: Build (.exe, no publish)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: npm run package
 
+      # Sur un tag vX.Y.Z : build + publication GitHub (installeur + latest.yml +
+      # blockmap), ce que electron-updater consomme pour les mises à jour auto.
+      - name: Release (.exe + latest.yml)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Non bloquant : si le quota d'artefacts Actions est atteint, on s'appuie
-      # sur la Release (assets non soumis au même quota).
+      # sur la Release.
       - name: Upload artifacts
         continue-on-error: true
         uses: actions/upload-artifact@v4
@@ -39,10 +49,3 @@ jobs:
           name: dofus-multi-account-windows
           path: dist/*.exe
           if-no-files-found: error
-
-      # Sur un tag vX.Y.Z : publie les .exe dans une Release GitHub
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.exe

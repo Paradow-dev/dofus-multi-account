@@ -3,7 +3,8 @@ import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { bootstrapShortcuts } from './state'
 import { unregisterAll } from './shortcuts'
-import { createTray, destroyTray } from './tray'
+import { createTray, destroyTray, rebuildMenu } from './tray'
+import { initUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -55,6 +56,8 @@ app.whenReady().then(() => {
   bootstrapShortcuts()
   createWindow()
   createTray(() => mainWindow)
+  // Mise à jour auto (no-op en dev) ; rafraîchit le menu du tray à chaque état.
+  initUpdater(() => rebuildMenu(() => mainWindow))
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
