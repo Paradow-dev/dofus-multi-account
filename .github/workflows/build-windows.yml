@@ -30,7 +30,10 @@ jobs:
       - name: Package (.exe)
         run: npm run package
 
+      # Non bloquant : si le quota d'artefacts Actions est atteint, on s'appuie
+      # sur la Release (assets non soumis au même quota).
       - name: Upload artifacts
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: dofus-multi-account-windows
