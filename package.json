@@ -10,7 +10,7 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "electron-vite preview",
-    "package": "electron-vite build && electron-builder --win --config electron-builder.yml"
+    "package": "electron-vite build && electron-builder --win --config electron-builder.yml --publish never"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
