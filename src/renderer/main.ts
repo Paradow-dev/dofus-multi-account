@@ -4,6 +4,14 @@ import '@ds/tokens/tokens.css'
 import '@ds/ds/styles.css'
 import './app.css'
 import markUrl from '@ds/logo/midnight-ember__mark-square.svg'
+import faviconUrl from '@ds/logo/midnight-ember__favicon-512.svg'
+
+// Favicon de la page = logo du design system (Midnight Ember).
+const favicon = document.createElement('link')
+favicon.rel = 'icon'
+favicon.type = 'image/svg+xml'
+favicon.href = faviconUrl
+document.head.append(favicon)
 
 import type {
   AccountConfig,
@@ -13,7 +21,7 @@ import type {
   UpdateState
 } from '@shared/types'
 import { h, clear } from './ui/dom'
-import { eventToAccelerator } from './ui/accelerator'
+import { eventToAccelerator, eventToMouseAccelerator } from './ui/accelerator'
 
 interface State {
   config: AppConfig
@@ -422,11 +430,18 @@ function textInput(value: string, placeholder: string, onInput: (v: string) => v
 }
 
 function shortcutCapture(current: string, onChange: (accel: string) => void): HTMLInputElement {
+  const set = (accel: string): void => {
+    input.value = accel
+    onChange(accel)
+    input.blur()
+  }
+
   const input = h('input', {
     class: 'input input--cell mono sc-capture',
     value: current,
     readonly: true,
-    placeholder: 'cliquer + taper',
+    placeholder: 'touche ou bouton souris',
+    title: 'Cliquer puis taper une touche, ou utiliser la molette / un bouton latéral de la souris',
     on: {
       keydown: (e) => {
         const ke = e as KeyboardEvent
@@ -437,12 +452,20 @@ function shortcutCapture(current: string, onChange: (accel: string) => void): HT
           return
         }
         const accel = eventToAccelerator(ke)
+        if (accel) set(accel)
+      },
+      // Boutons souris « non essentiels » (molette, latéraux) : capturés comme raccourci.
+      mousedown: (e) => {
+        const me = e as MouseEvent
+        const accel = eventToMouseAccelerator(me)
         if (accel) {
-          input.value = accel
-          onChange(accel)
-          input.blur()
+          e.preventDefault()
+          set(accel)
         }
-      }
+      },
+      // Empêche le menu contextuel / la navigation arrière-avant pendant la capture.
+      contextmenu: (e) => e.preventDefault(),
+      auxclick: (e) => e.preventDefault()
     }
   }) as HTMLInputElement
   return input
