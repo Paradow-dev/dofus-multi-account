@@ -121,6 +121,9 @@ function render(): void {
   root.append(renderTopbar())
   const main = h('main', { class: 'page' })
 
+  const banner = renderUpdateBanner()
+  if (banner) main.append(banner)
+
   const conflicts = failed()
   if (conflicts.length) main.append(renderConflicts(conflicts))
 
@@ -163,18 +166,14 @@ function renderTopbar(): HTMLElement {
   return h('header', { class: 'topbar' }, [brand, meta])
 }
 
-/** Indicateur de mise à jour dans l'en-tête (null si rien à montrer). */
+/**
+ * Indicateur compact de mise à jour dans l'en-tête (null si rien à montrer).
+ * Les états « téléchargement » et « prêt » sont portés par la bannière pleine
+ * largeur (renderUpdateBanner) ; l'en-tête ne garde que les états brefs.
+ */
 function renderUpdate(): HTMLElement | null {
   const u = state.update
   switch (u.status) {
-    case 'downloaded':
-      return h('button', {
-        class: 'btn btn--primary btn--sm',
-        text: `Redémarrer pour installer${u.version ? ` v${u.version}` : ''}`,
-        on: { click: () => void window.api.installUpdate() }
-      })
-    case 'downloading':
-      return h('span', { class: 'upd-note', text: `MAJ… ${u.percent ?? 0}%` })
     case 'available':
       return h('span', { class: 'upd-note', text: 'MAJ disponible' })
     case 'checking':
@@ -182,6 +181,55 @@ function renderUpdate(): HTMLElement | null {
     default:
       return null
   }
+}
+
+/**
+ * Bannière de mise à jour (pleine largeur) affichée pendant le cycle de MAJ :
+ * mise en place dès le téléchargement automatique, avec barre de progression,
+ * puis invite au redémarrage une fois la MAJ téléchargée.
+ */
+function renderUpdateBanner(): HTMLElement | null {
+  const u = state.update
+
+  if (u.status === 'downloading') {
+    const pct = u.percent ?? 0
+    const fill = h('div', { class: 'upd-progress-fill', attrs: { style: `width:${pct}%` } })
+    const bar = h('div', {
+      class: 'upd-progress',
+      attrs: {
+        role: 'progressbar',
+        'aria-valuemin': '0',
+        'aria-valuemax': '100',
+        'aria-valuenow': String(pct)
+      }
+    }, [fill])
+
+    return h('div', { class: 'alert alert--info upd-banner' }, [
+      h('div', { class: 'alert-body' }, [
+        h('strong', { text: `Téléchargement de la mise à jour${u.version ? ` v${u.version}` : ''}…` }),
+        h('p', { text: 'La mise à jour s’installera automatiquement à la prochaine fermeture.' }),
+        h('div', { class: 'upd-banner-row' }, [bar, h('span', { class: 'upd-pct', text: `${pct}%` })])
+      ])
+    ])
+  }
+
+  if (u.status === 'downloaded') {
+    return h('div', { class: 'alert alert--success upd-banner' }, [
+      h('div', { class: 'alert-body' }, [
+        h('strong', { text: `Mise à jour v${u.version ?? ''} prête` }),
+        h('p', { text: 'Redémarrez l’application pour terminer l’installation.' }),
+        h('div', { class: 'upd-banner-row' }, [
+          h('button', {
+            class: 'btn btn--primary btn--sm',
+            text: 'Redémarrer maintenant',
+            on: { click: () => void window.api.installUpdate() }
+          })
+        ])
+      ])
+    ])
+  }
+
+  return null
 }
 
 function renderConflicts(conflicts: ShortcutRegistration[]): HTMLElement {
