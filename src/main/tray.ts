@@ -3,10 +3,11 @@ import { getConfig, applyConfig } from './state'
 import { arrangeGrid } from './shortcuts'
 import { checkForUpdates, quitAndInstall, getUpdateState } from './updater'
 
-// Marque Paradow 32×32 (chevron blanc + curseur rouge, fond transparent),
-// rasterisée depuis le SVG du design system. Embarquée pour éviter tout asset externe.
+// Marque « Midnight Ember » 32×32 (chevron clair + curseur rouge, fond transparent),
+// rasterisée depuis le SVG du design system via scripts/gen-icons.mjs.
+// Embarquée en base64 pour éviter tout asset externe au runtime.
 const TRAY_ICON_PNG =
-  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAxUlEQVR42mNgGAWjYDCDLx9fBQPxayhOHggHgCz+j4Q3A7HwQDrgP1TMn55R8BmLI0B4PhBz08MR8kB8GIcj7gOxPT0cwQzExUD8G4sjQGLdQMxOD4foA/F5HKEBEtenhyPYoT7GFRqgkGKmh0PsoWkAW2iA0ow8PRzBDc0N2BwByj3B9Mqu/rjKjOHtgAGNggFLhAOaDQesIBrQonhAKyNKquP/MeH/cWG6NEho5QCim2TUcgDZjVKgRfW48GhzfxQMKgAA6uDET/O/LFYAAAAASUVORK5CYII='
+  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAi0lEQVR42u2VsQ2AMAwEGSEjMEJGYAS6NCkYgRHYgBEYhREYgd4NsuTeKJJTU8EL8Elf+2Q7TtM4juO8CWEKaIHVElACszCpMO3CFFESvTAdJjKgJKIwbSaxQEZSilpxNZkW1Y3RJEr6/whARwBdQugzvDpEmlOnOWnN46dYc2o1p6nme5+R4zjOHZzhmsI8DWtx+gAAAABJRU5ErkJggg=='
 
 let tray: Tray | null = null
 

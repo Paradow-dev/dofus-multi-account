@@ -6,6 +6,12 @@ import type {
   ShortcutRegistration
 } from '@shared/types'
 import { focusAccount, applyGridLayout } from './windowManager'
+import {
+  isMouseAccelerator,
+  parseMouseAccelerator,
+  setMouseBindings,
+  type MouseBinding
+} from './mouseHook'
 
 /** Index courant dans l'ordre de cycle (référence le compte focalisé en dernier). */
 let currentIndex = 0
@@ -66,11 +72,26 @@ export function arrangeGrid(config: AppConfig): void {
 export function registerAll(config: AppConfig): ShortcutRegistration[] {
   globalShortcut.unregisterAll()
   const registrations: ShortcutRegistration[] = []
+  const mouseBindings: MouseBinding[] = []
 
-  if (!config.enabled) return registrations
+  if (!config.enabled) {
+    setMouseBindings([])
+    return registrations
+  }
 
+  // Les raccourcis souris ne passent pas par globalShortcut (clavier seulement) :
+  // on les confie au hook souris natif. Le hook est démarré une fois la liste prête.
   const tryRegister = (accelerator: string, label: string, action: () => void): void => {
     if (!accelerator) return
+
+    if (isMouseAccelerator(accelerator)) {
+      const parsed = parseMouseAccelerator(accelerator)
+      const ok = parsed !== null
+      if (parsed) mouseBindings.push({ ...parsed, action })
+      registrations.push({ accelerator, label, ok })
+      return
+    }
+
     let ok = false
     try {
       ok = globalShortcut.register(accelerator, action)
@@ -92,10 +113,20 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
     }
   }
 
+  // Active (ou arrête) le hook souris selon les raccourcis souris configurés.
+  const mouseHookOk = setMouseBindings(mouseBindings)
+  if (!mouseHookOk) {
+    // Le hook n'a pas pu démarrer : marque les raccourcis souris en échec pour l'UI.
+    for (const reg of registrations) {
+      if (isMouseAccelerator(reg.accelerator)) reg.ok = false
+    }
+  }
+
   return registrations
 }
 
 /** Libère tous les raccourcis (à appeler avant de quitter). */
 export function unregisterAll(): void {
   globalShortcut.unregisterAll()
+  setMouseBindings([])
 }

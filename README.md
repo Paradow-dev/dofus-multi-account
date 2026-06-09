@@ -13,6 +13,9 @@ instantanément entre vos fenêtres et organiser leur disposition.
 - **Cycle suivant / précédent** — un raccourci global passe au compte suivant
   ou précédent dans l'ordre défini.
 - **Raccourci dédié par compte** — ex. `Ctrl+Alt+1` active directement un perso.
+- **Raccourcis souris** — en plus du clavier, on peut assigner la molette (clic
+  central) ou les boutons latéraux (Précédent / Suivant), éventuellement combinés
+  à un modificateur (ex. `Ctrl+MouseForward`). Capté par un hook souris natif.
 - **Disposition des fenêtres** — au changement de compte : ne rien faire,
   agrandir la fenêtre active, ou tout disposer en mosaïque.
 - **Détection automatique** des fenêtres Dofus par titre, avec réordonnancement
@@ -37,6 +40,11 @@ npm run typecheck # vérification TypeScript
 npm run build     # bundle main / preload / renderer dans out/
 npm run package   # génère l'installeur + portable .exe dans dist/ (electron-builder)
 ```
+
+Les icônes de l'app (`build/icon.ico`, `build/icon.png` et l'icône du tray) sont
+générées depuis le logo du design system (`midnight-ember__favicon-512.svg`) par
+`node scripts/gen-icons.mjs` (rasteriseur pur Node, sans dépendance). À relancer
+si le logo du design system change.
 
 ## Architecture
 

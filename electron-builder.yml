@@ -11,6 +11,9 @@ asarUnpack:
   - "**/node_modules/koffi/**"
   - "**/node_modules/node-window-manager/**"
 win:
+  # Icône de l'app (exe + installeur), générée depuis le logo du design system
+  # « Midnight Ember » via scripts/gen-icons.mjs.
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:

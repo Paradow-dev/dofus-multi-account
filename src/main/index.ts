@@ -10,6 +10,12 @@ import { stopTurnHook } from './turnHook'
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
+  // En production l'icône de l'exécutable provient d'electron-builder (build/icon.ico).
+  // En dev on pointe explicitement le PNG du design system pour la barre des tâches.
+  const devIcon = process.env['ELECTRON_RENDERER_URL']
+    ? join(__dirname, '../../build/icon.png')
+    : undefined
+
   mainWindow = new BrowserWindow({
     width: 900,
     height: 680,
@@ -18,6 +24,7 @@ function createWindow(): void {
     show: false,
     backgroundColor: '#0E1116',
     autoHideMenuBar: true,
+    ...(devIcon ? { icon: devIcon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
