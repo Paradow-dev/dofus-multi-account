@@ -21,9 +21,16 @@ jobs:
         with:
           node-version: 20
 
-      # Les runners windows-latest embarquent déjà Visual Studio + la charge
-      # "Desktop development with C++", donc node-gyp compile node-window-manager
-      # sans installation supplémentaire.
+      # Les runners windows-latest embarquent Visual Studio + la charge "Desktop
+      # development with C++". Mais le node-gyp fourni avec Node 20 (10.1.0) ne sait
+      # pas détecter les versions récentes de VS (« 18 ») → crash
+      # ERR_CHILD_PROCESS_STDIO_MAXBUFFER. On force un node-gyp à jour, qui les gère.
+      - name: Mettre à jour node-gyp (support des versions récentes de Visual Studio)
+        shell: bash
+        run: |
+          npm install -g node-gyp@latest
+          npm config set node_gyp "$(npm root -g)/node-gyp/bin/node-gyp.js"
+
       - name: Install dependencies
         run: npm install
 
