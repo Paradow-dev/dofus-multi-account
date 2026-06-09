@@ -5,6 +5,11 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publier une release GitHub (installeur + latest.yml) à partir de la version de package.json'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -29,15 +34,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Sur une branche : build seul (pas de publication).
+      # Build seul (pas de publication) : push de branche, ou dispatch sans release.
       - name: Build (.exe, no publish)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') && github.event.inputs.release != 'true' }}
         run: npm run package
 
-      # Sur un tag vX.Y.Z : build + publication GitHub (installeur + latest.yml +
-      # blockmap), ce que electron-updater consomme pour les mises à jour auto.
+      # Publication GitHub (installeur + latest.yml + blockmap, consommés par
+      # electron-updater) : sur un tag vX.Y.Z, ou via un dispatch manuel avec
+      # l'option « release » cochée. Dans ce dernier cas, electron-builder crée
+      # lui-même la Release et le tag vX.Y.Z d'après la version de package.json.
       - name: Release (.exe + latest.yml)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: ${{ startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release == 'true' }}
         run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
