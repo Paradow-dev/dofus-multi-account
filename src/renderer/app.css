@@ -109,3 +109,30 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+
+/* Bannière de mise à jour (pleine largeur, en tête de page) */
+.upd-banner .upd-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.upd-progress {
+  flex: 1;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+.upd-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 200ms ease;
+}
+.upd-pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
