@@ -68,11 +68,21 @@ le menu du tray (« Vérifier les mises à jour » / « Redémarrer pour install
 > ⚠️ L'auto-update ne concerne que la version **installée** (installeur NSIS),
 > pas la version portable. Installe au moins une fois via l'installeur.
 
-Pour publier une nouvelle version : bumper `version` dans `package.json` puis
-pousser un tag — la CI build, publie la Release et le `latest.yml` :
+Pour publier une nouvelle version, il suffit de **bumper `version` dans
+`package.json` et de merger sur `main`** : la CI détecte qu'aucun tag ne
+correspond à cette version, build, puis publie la Release et le `latest.yml`
+(electron-builder crée lui-même le tag `vX.Y.Z`). Les pushes suivants à version
+inchangée ne re-publient pas.
+
+Deux autres déclencheurs équivalents restent possibles :
 
 ```bash
-git tag v0.4.0 && git push origin v0.4.0
+# 1. Pousser un tag explicitement
+git tag v0.5.0 && git push origin v0.5.0
+```
+
+```text
+# 2. Onglet Actions → « Build Windows » → Run workflow → cocher « Publier une release »
 ```
 
 ## Configuration
