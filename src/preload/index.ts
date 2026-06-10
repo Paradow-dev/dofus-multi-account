@@ -4,6 +4,7 @@ import {
   type AppConfig,
   type BrowserConfig,
   type CycleDirection,
+  type Favorite,
   type RendererApi,
   type ShortcutRegistration,
   type UpdateState
@@ -41,6 +42,8 @@ const api: RendererApi = {
   closeBrowser: () => ipcRenderer.invoke(IPC.browserClose),
   getBrowserConfig: () => ipcRenderer.invoke(IPC.browserConfigGet),
   persistBrowserTabs: (urls: string[]) => ipcRenderer.send(IPC.browserPersistTabs, urls),
+  persistBrowserFavorites: (favorites: Favorite[]) =>
+    ipcRenderer.send(IPC.browserPersistFavorites, favorites),
   onBrowserState: (cb: (config: BrowserConfig) => void) => {
     const listener = (_e: unknown, config: BrowserConfig): void => cb(config)
     ipcRenderer.on(IPC.browserState, listener)

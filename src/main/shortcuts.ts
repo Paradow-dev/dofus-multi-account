@@ -7,6 +7,7 @@ import type {
 } from '@shared/types'
 import { focusAccount, applyGridLayout } from './windowManager'
 import { setActiveCharacter } from './overlay'
+import { getConfig, applyConfig } from './state'
 import {
   isMouseAccelerator,
   parseMouseAccelerator,
@@ -115,6 +116,17 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
       )
     }
   }
+
+  // Bascule l'affichage de chaque overlay (lit la config courante au déclenchement,
+  // puis applique : (re)enregistre les raccourcis et synchronise les fenêtres).
+  tryRegister(config.overlayToggle ?? '', 'Overlay : nom du personnage', () => {
+    const c = getConfig()
+    applyConfig({ ...c, overlay: { ...c.overlay, enabled: !c.overlay.enabled } })
+  })
+  tryRegister(config.browserToggle ?? '', 'Overlay : navigateur', () => {
+    const c = getConfig()
+    applyConfig({ ...c, browser: { ...c.browser, enabled: !c.browser.enabled } })
+  })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.
   const mouseHookOk = setMouseBindings(mouseBindings)

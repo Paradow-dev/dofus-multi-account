@@ -3,6 +3,7 @@ import '@ds/fonts.css'
 import '@ds/tokens/tokens.css'
 import './browser.css'
 import { h } from './ui/dom'
+import type { Favorite } from '@shared/types'
 
 // La <webview> n'est pas typée par défaut côté renderer : on déclare le minimum utilisé.
 interface Webview extends HTMLElement {
@@ -30,8 +31,11 @@ const closeBtn = document.getElementById('close') as HTMLButtonElement
 const zoomOutBtn = document.getElementById('zoomout') as HTMLButtonElement
 const zoomInBtn = document.getElementById('zoomin') as HTMLButtonElement
 const zoomLevelBtn = document.getElementById('zoomlevel') as HTMLButtonElement
+const favBtn = document.getElementById('fav') as HTMLButtonElement
+const favMenu = document.getElementById('favmenu') as HTMLElement
 
 let homeUrl = ''
+let favorites: Favorite[] = []
 
 interface Tab {
   id: number
@@ -95,6 +99,7 @@ function setActive(id: number): void {
     urlInput.value = t.url
     syncNavState()
     updateZoomLabel()
+    updateFavState()
   }
 }
 
@@ -123,6 +128,93 @@ function zoomActive(delta: number): void {
 function resetZoomActive(): void {
   const t = activeTab()
   if (t) setZoom(t, 1)
+}
+
+/* ---------- Favoris ---------- */
+
+const isFavorite = (url: string): boolean => favorites.some((f) => f.url === url)
+
+/** Met à jour l'étoile (pleine si la page active est en favori). */
+function updateFavState(): void {
+  const t = activeTab()
+  const on = !!t && isFavorite(t.url)
+  favBtn.classList.toggle('is-on', on)
+  favBtn.textContent = on ? '★' : '☆'
+  favBtn.title = on ? 'Retirer des favoris' : 'Ajouter aux favoris'
+}
+
+/** Ajoute/retire la page active des favoris. */
+function toggleFavorite(): void {
+  const t = activeTab()
+  if (!t) return
+  if (isFavorite(t.url)) {
+    favorites = favorites.filter((f) => f.url !== t.url)
+  } else {
+    favorites.push({ title: t.titleEl.textContent || shortLabel(t.url), url: t.url })
+  }
+  window.api.persistBrowserFavorites(favorites)
+  updateFavState()
+  renderFavMenu()
+}
+
+function removeFavorite(url: string): void {
+  favorites = favorites.filter((f) => f.url !== url)
+  window.api.persistBrowserFavorites(favorites)
+  updateFavState()
+  renderFavMenu()
+}
+
+/** (Re)construit le contenu du menu favoris. */
+function renderFavMenu(): void {
+  favMenu.replaceChildren()
+
+  const t = activeTab()
+  const current = t && !isFavorite(t.url)
+  const addBtn = h('button', {
+    class: 'bx-fav-add',
+    text: current ? '＋ Ajouter cette page' : '★ Page déjà en favori',
+    on: { click: () => toggleFavorite() }
+  }) as HTMLButtonElement
+  addBtn.disabled = !current
+  favMenu.append(addBtn)
+
+  if (favorites.length === 0) {
+    favMenu.append(h('div', { class: 'bx-fav-empty', text: 'Aucun favori pour le moment.' }))
+    return
+  }
+
+  for (const fav of favorites) {
+    const link = h('button', {
+      class: 'bx-fav-link',
+      text: fav.title || shortLabel(fav.url),
+      title: fav.url,
+      on: {
+        click: () => {
+          navigate(fav.url)
+          closeFavMenu()
+        }
+      }
+    })
+    const del = h('button', {
+      class: 'bx-fav-del',
+      text: '✕',
+      title: 'Retirer ce favori',
+      on: { click: () => removeFavorite(fav.url) }
+    })
+    favMenu.append(h('div', { class: 'bx-fav-item' }, [link, del]))
+  }
+}
+
+function openFavMenu(): void {
+  renderFavMenu()
+  favMenu.hidden = false
+}
+function closeFavMenu(): void {
+  favMenu.hidden = true
+}
+function toggleFavMenu(): void {
+  if (favMenu.hidden) openFavMenu()
+  else closeFavMenu()
 }
 
 function navigate(input: string): void {
@@ -161,6 +253,7 @@ function createTab(url: string, activate = true): void {
     if (id === activeId) {
       if (document.activeElement !== urlInput) urlInput.value = tab.url
       syncNavState()
+      updateFavState()
     }
     persistTabs()
   }
@@ -221,6 +314,14 @@ newTabBtn.addEventListener('click', () => createTab(homeUrl))
 zoomOutBtn.addEventListener('click', () => zoomActive(-0.1))
 zoomInBtn.addEventListener('click', () => zoomActive(0.1))
 zoomLevelBtn.addEventListener('click', () => resetZoomActive())
+favBtn.addEventListener('click', (e) => {
+  e.stopPropagation()
+  toggleFavMenu()
+})
+// Ferme le menu favoris au clic en dehors.
+document.addEventListener('click', (e) => {
+  if (!favMenu.hidden && !favMenu.contains(e.target as Node) && e.target !== favBtn) closeFavMenu()
+})
 
 // Raccourcis clavier de zoom quand la barre d'outils a le focus (Ctrl +/-/0).
 window.addEventListener('keydown', (e) => {
@@ -264,6 +365,7 @@ window.api.onBrowserZoom(({ wcId, factor }) => {
 async function init(): Promise<void> {
   const cfg = await window.api.getBrowserConfig()
   homeUrl = cfg.homeUrl
+  favorites = cfg.favorites ? [...cfg.favorites] : []
   const initial = cfg.tabs && cfg.tabs.length ? cfg.tabs : [cfg.homeUrl]
   initial.forEach((url) => createTab(url, false))
   if (tabs.length) setActive(tabs[0].id)

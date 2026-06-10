@@ -1,5 +1,11 @@
 import { BrowserWindow } from 'electron'
-import { IPC, type AppConfig, type BrowserConfig, type ShortcutRegistration } from '@shared/types'
+import {
+  IPC,
+  type AppConfig,
+  type BrowserConfig,
+  type Favorite,
+  type ShortcutRegistration
+} from '@shared/types'
 import { loadConfig, saveConfig } from './config'
 import { registerAll } from './shortcuts'
 import { syncTurnFollow } from './turnFollow'
@@ -106,5 +112,13 @@ export function persistBrowserTabs(urls: string[]): void {
   currentConfig = saveConfig({
     ...currentConfig,
     browser: { ...currentConfig.browser, tabs: urls }
+  })
+}
+
+/** Mémorise la liste des sites favoris (opération légère, sans notification). */
+export function persistBrowserFavorites(favorites: Favorite[]): void {
+  currentConfig = saveConfig({
+    ...currentConfig,
+    browser: { ...currentConfig.browser, favorites }
   })
 }

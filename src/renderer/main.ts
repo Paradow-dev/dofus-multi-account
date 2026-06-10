@@ -478,7 +478,7 @@ function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLE
 }
 
 function renderCycle(): HTMLElement {
-  const grid = h('div', { class: 'input-grid two' }, [
+  const cycleGrid = h('div', { class: 'input-grid two' }, [
     field('Compte suivant', shortcutCapture(state.config.cycleNext, (a) => {
       state.config.cycleNext = a
       markDirty()
@@ -488,10 +488,25 @@ function renderCycle(): HTMLElement {
       markDirty()
     }))
   ])
+
+  const overlayGrid = h('div', { class: 'input-grid two' }, [
+    field('Overlay personnage', shortcutCapture(state.config.overlayToggle ?? '', (a) => {
+      state.config.overlayToggle = a || undefined
+      markDirty()
+    })),
+    field('Overlay navigateur', shortcutCapture(state.config.browserToggle ?? '', (a) => {
+      state.config.browserToggle = a || undefined
+      markDirty()
+    }))
+  ])
+
   return pageEl(
-    'Raccourcis de cycle',
-    'Passez au compte suivant ou précédent dans l’ordre défini.',
-    grid
+    'Raccourcis',
+    'Cyclez entre les comptes et affichez/masquez les overlays.',
+    h('div', { class: 'field-label', text: 'Cycle des comptes' }),
+    cycleGrid,
+    h('div', { class: 'field-label sec-gap', text: 'Affichage des overlays' }),
+    overlayGrid
   )
 }
 

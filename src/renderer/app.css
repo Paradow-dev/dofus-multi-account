@@ -110,6 +110,14 @@
   margin-bottom: 20px;
 }
 
+/* Sous-titre de section dans une page de réglages. */
+.page-sec > .field-label {
+  margin-bottom: 8px;
+}
+.page-sec > .field-label.sec-gap {
+  margin-top: 28px;
+}
+
 /* Espace les encadrés d'information des contrôles qui les précèdent. */
 .page-sec .alert {
   margin-top: 20px;

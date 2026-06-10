@@ -34,6 +34,12 @@ export interface OverlayConfig {
  * Mini-navigateur en overlay : fenêtre dédiée, redimensionnable, always-on-top
  * activable, pour consulter des guides de quêtes tout en gardant le jeu visible.
  */
+/** Un site favori du navigateur overlay. */
+export interface Favorite {
+  title: string
+  url: string
+}
+
 export interface BrowserConfig {
   /** Affiche (ou non) la fenêtre du mini-navigateur. */
   enabled: boolean
@@ -43,6 +49,8 @@ export interface BrowserConfig {
   homeUrl: string
   /** URLs des onglets ouverts (restaurés à la réouverture). */
   tabs?: string[]
+  /** Sites favoris (accès rapide depuis le menu favoris). */
+  favorites?: Favorite[]
   /** Géométrie persistée de la fenêtre (px écran). Absente = centrée. */
   x?: number
   y?: number
@@ -57,6 +65,10 @@ export interface AppConfig {
   cycleNext: string
   /** Accélérateur du cycle « compte précédent ». */
   cyclePrev: string
+  /** Accélérateur pour afficher/masquer l'overlay du nom de personnage. */
+  overlayToggle?: string
+  /** Accélérateur pour afficher/masquer le navigateur overlay. */
+  browserToggle?: string
   /** Disposition appliquée lors d'un changement de compte. */
   layoutMode: LayoutMode
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
@@ -137,6 +149,8 @@ export const IPC = {
   browserConfigGet: 'browser:config-get',
   /** navigateur → main : mémorise les URLs des onglets ouverts. */
   browserPersistTabs: 'browser:persist-tabs',
+  /** navigateur → main : mémorise la liste des sites favoris. */
+  browserPersistFavorites: 'browser:persist-favorites',
   /** main → fenêtres : nouvel état de configuration du navigateur (réglages). */
   browserState: 'browser:state',
   /** main → navigateur : ouvrir un nouvel onglet (lien ouvrant une nouvelle fenêtre). */
@@ -192,6 +206,8 @@ export interface RendererApi {
   getBrowserConfig(): Promise<BrowserConfig>
   /** (Fenêtre navigateur) Mémorise les URLs des onglets ouverts. */
   persistBrowserTabs(urls: string[]): void
+  /** (Fenêtre navigateur) Mémorise la liste des sites favoris. */
+  persistBrowserFavorites(favorites: Favorite[]): void
   /** S'abonne aux changements de réglages du navigateur. Retourne une fonction de désabonnement. */
   onBrowserState(cb: (config: BrowserConfig) => void): () => void
   /** (Fenêtre navigateur) S'abonne aux demandes d'ouverture d'onglet (clic sur un lien). */
