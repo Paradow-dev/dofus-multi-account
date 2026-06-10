@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+    />
+    <title>Navigateur</title>
+  </head>
+  <body class="browser-body">
+    <div class="bx-tabs" id="tabs">
+      <button class="bx-tab-new" id="newtab" title="Nouvel onglet">+</button>
+    </div>
+
+    <header class="bx-toolbar" id="toolbar">
+      <div class="bx-nav">
+        <button class="bx-btn" id="back" title="Précédent" disabled>‹</button>
+        <button class="bx-btn" id="forward" title="Suivant" disabled>›</button>
+        <button class="bx-btn" id="reload" title="Recharger">⟳</button>
+        <button class="bx-btn" id="home" title="Page d’accueil">⌂</button>
+      </div>
+
+      <div class="bx-address">
+        <input
+          id="url"
+          class="bx-url"
+          type="text"
+          spellcheck="false"
+          placeholder="Rechercher ou saisir une adresse"
+        />
+      </div>
+
+      <div class="bx-tools">
+        <button class="bx-btn bx-close" id="close" title="Fermer le navigateur">✕</button>
+      </div>
+    </header>
+
+    <div class="bx-views" id="views"></div>
+
+    <script type="module" src="./browser.ts"></script>
+  </body>
+</html>

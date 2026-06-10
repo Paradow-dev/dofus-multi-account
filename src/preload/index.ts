@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   IPC,
   type AppConfig,
+  type BrowserConfig,
   type CycleDirection,
   type RendererApi,
   type ShortcutRegistration,
@@ -35,7 +36,16 @@ const api: RendererApi = {
   },
   resizeOverlay: (width: number, height: number) =>
     ipcRenderer.send(IPC.overlayResize, width, height),
-  resetOverlayPosition: () => ipcRenderer.invoke(IPC.overlayResetPosition)
+  resetOverlayPosition: () => ipcRenderer.invoke(IPC.overlayResetPosition),
+  openBrowser: () => ipcRenderer.invoke(IPC.browserOpen),
+  closeBrowser: () => ipcRenderer.invoke(IPC.browserClose),
+  getBrowserConfig: () => ipcRenderer.invoke(IPC.browserConfigGet),
+  persistBrowserTabs: (urls: string[]) => ipcRenderer.send(IPC.browserPersistTabs, urls),
+  onBrowserState: (cb: (config: BrowserConfig) => void) => {
+    const listener = (_e: unknown, config: BrowserConfig): void => cb(config)
+    ipcRenderer.on(IPC.browserState, listener)
+    return () => ipcRenderer.removeListener(IPC.browserState, listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

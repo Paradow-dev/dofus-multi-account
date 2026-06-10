@@ -21,6 +21,19 @@ const overlaySchema = z
   })
   .default({ enabled: false, opacity: 0.9 })
 
+const browserSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    opacity: z.number().min(0.3).max(1).default(1),
+    homeUrl: z.string().default(DEFAULT_CONFIG.browser.homeUrl),
+    tabs: z.array(z.string()).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional()
+  })
+  .default(DEFAULT_CONFIG.browser)
+
 const configSchema = z.object({
   accounts: z.array(accountSchema),
   cycleNext: z.string(),
@@ -29,7 +42,8 @@ const configSchema = z.object({
   enabled: z.boolean(),
   // .default : les configs persistées avant cette option restent valides.
   turnFollow: z.boolean().default(false),
-  overlay: overlaySchema
+  overlay: overlaySchema,
+  browser: browserSchema
 })
 
 const store = new Store<{ config: AppConfig }>({

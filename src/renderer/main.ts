@@ -23,7 +23,15 @@ import type {
 import { h, clear } from './ui/dom'
 import { eventToAccelerator, eventToMouseAccelerator } from './ui/accelerator'
 
-type PageId = 'accounts' | 'shortcuts' | 'layout' | 'overlay' | 'turn' | 'windows' | 'about'
+type PageId =
+  | 'accounts'
+  | 'shortcuts'
+  | 'layout'
+  | 'overlay'
+  | 'browser'
+  | 'turn'
+  | 'windows'
+  | 'about'
 
 interface State {
   config: AppConfig
@@ -44,7 +52,12 @@ const state: State = {
     layoutMode: 'maximize-active',
     enabled: true,
     turnFollow: false,
-    overlay: { enabled: false, opacity: 0.9 }
+    overlay: { enabled: false, opacity: 0.9 },
+    browser: {
+      enabled: false,
+      opacity: 1,
+      homeUrl: 'https://www.dofus.com/fr/mmorpg/encyclopedie/quetes'
+    }
   },
   windows: [],
   registrations: [],
@@ -67,6 +80,12 @@ async function init(): Promise<void> {
   })
   window.api.onUpdateState((s) => {
     state.update = s
+    render()
+  })
+  window.api.onBrowserState((cfg) => {
+    // N'écrase pas une édition en cours (dirty) pour ne pas perdre la saisie.
+    if (state.dirty) return
+    state.config.browser = cfg
     render()
   })
   render()
@@ -133,6 +152,7 @@ const NAV: { group: string; items: { id: PageId; label: string; icon: string }[]
       { id: 'shortcuts', label: 'Raccourcis', icon: 'key' },
       { id: 'layout', label: 'Disposition', icon: 'grid' },
       { id: 'overlay', label: 'Overlay', icon: 'tag' },
+      { id: 'browser', label: 'Navigateur', icon: 'globe' },
       { id: 'turn', label: 'Suivi de tour', icon: 'refresh' }
     ]
   },
@@ -150,6 +170,7 @@ const PAGES: Record<PageId, () => HTMLElement> = {
   shortcuts: renderCycle,
   layout: renderLayout,
   overlay: renderOverlay,
+  browser: renderBrowser,
   turn: renderCombat,
   windows: renderDetected,
   about: renderAbout
@@ -331,6 +352,7 @@ const ICONS: Record<string, string[]> = {
   ],
   refresh: ['M21 12a9 9 0 1 1-3-6.7', 'M21 3v5h-5'],
   window: ['M3 4h18v16H3z', 'M3 9h18'],
+  globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3a15 15 0 0 1 0 18', 'M12 3a15 15 0 0 0 0 18'],
   info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01']
 }
 
@@ -558,6 +580,72 @@ function renderOverlay(): HTMLElement {
     h('div', { class: 'combat-row' }, [toggle]),
     opacityRow,
     resetRow,
+    note
+  )
+}
+
+function renderBrowser(): HTMLElement {
+  const bx = state.config.browser
+
+  const toggle = renderSwitch('Afficher le navigateur', bx.enabled, (v) => {
+    bx.enabled = v
+    void save() // prend effet immédiatement (ouvre/ferme la fenêtre)
+  })
+
+  const openBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Ouvrir maintenant',
+    on: { click: () => void window.api.openBrowser() }
+  })
+
+  const homeInput = textInput(bx.homeUrl, 'https://…', (v) => {
+    bx.homeUrl = v
+    state.dirty = true
+    syncSaveButton()
+  }, true)
+  const homeRow = field('Page d’accueil', homeInput)
+
+  // Curseur d'opacité : aperçu live via le libellé, application à la fin du drag.
+  const pct = (o: number): string => `${Math.round(o * 100)}%`
+  const valueLabel = h('span', { class: 'upd-pct', text: pct(bx.opacity) })
+  const slider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0.3', max: '1', step: '0.05', value: String(bx.opacity) },
+    on: {
+      input: (e) => {
+        valueLabel.textContent = pct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        bx.opacity = Number((e.target as HTMLInputElement).value)
+        void save()
+      }
+    }
+  }) as HTMLInputElement
+  const opacityRow = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Opacité' }),
+    h('div', { class: 'range-row' }, [slider, valueLabel])
+  ])
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Une fenêtre <strong>navigateur</strong> légère, redimensionnable et déplaçable ' +
+          '(glissez la barre d’outils), <strong>toujours au premier plan</strong> pendant le jeu. ' +
+          'Gérez plusieurs <strong>guides de quêtes</strong> via les <strong>onglets</strong>. ' +
+          'Réglez sa transparence avec l’<strong>opacité</strong> ci-dessus. ' +
+          'Les onglets ouverts et la taille de la fenêtre sont mémorisés.'
+      })
+    ])
+  ])
+
+  return pageEl(
+    'Navigateur',
+    'Un mini-navigateur en overlay pour consulter des guides tout en jouant.',
+    h('div', { class: 'combat-row' }, [toggle, openBtn]),
+    homeRow,
+    opacityRow,
     note
   )
 }
