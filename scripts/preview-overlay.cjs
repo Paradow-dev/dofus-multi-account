@@ -63,8 +63,9 @@ ${overlayCss}
   /* Overlay placé "en haut", comme posé sur le jeu. */
   .floating { position:absolute; top:26px; right:34px; }
   .floating .overlay-card { cursor: default; }
-  .variants { margin-top:auto; display:flex; gap:26px; align-items:flex-end; }
-  .variant { display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+  .variants { margin-top:auto; display:flex; flex-direction:column; gap:14px; align-items:flex-start; }
+  .variant { display:flex; align-items:center; gap:14px; }
+  .variant .caption { white-space:nowrap; }
   .variant .overlay-card { cursor: default; }
   .caption { font-family: var(--font-mono); font-size:12px; color:var(--ink-3); }
 </style>
@@ -81,14 +82,14 @@ ${overlayCss}
       ${'' /* pilule telle qu'affichée en jeu, opacité par défaut 90% */}
       <div class="overlay-card" style="opacity:.9">
         <span class="overlay-dot"></span>
-        <span class="overlay-name">Iop-Du-Krosmoz</span>
+        <span class="overlay-name">Lyssaen - Sacrieur</span>
       </div>
     </div>
 
     <div class="variants">
-      ${card('Eniripsa', 1, 'Opacité 100%')}
-      ${card('Cra-Sniper', 0.7, 'Opacité 70%')}
-      ${card('Sacrieur', 0.4, 'Opacité 40%')}
+      ${card('Iop', 0.9, 'Nom court → pilule étroite')}
+      ${card('Lyssaen - Sacrieur', 0.9, 'Nom moyen → s’élargit')}
+      ${card('Lyssaen - Sacrieur - 3.5.1.x - Release', 0.9, 'Trop long → tronqué (max)')}
     </div>
   </div>
 </body>

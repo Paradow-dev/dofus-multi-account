@@ -4,6 +4,7 @@ import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
 import { applyConfig, getConfig } from './state'
 import { checkForUpdates, quitAndInstall } from './updater'
+import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -25,4 +26,9 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC.updateCheck, () => checkForUpdates())
   ipcMain.handle(IPC.updateInstall, () => quitAndInstall())
+
+  ipcMain.on(IPC.overlayResize, (_e, width: number, height: number) =>
+    resizeOverlayWindow(width, height)
+  )
+  ipcMain.handle(IPC.overlayResetPosition, () => resetOverlayPosition())
 }

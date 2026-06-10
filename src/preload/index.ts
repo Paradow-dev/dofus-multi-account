@@ -31,7 +31,10 @@ const api: RendererApi = {
     const listener = (_e: unknown, name: string): void => cb(name)
     ipcRenderer.on(IPC.overlayCharacter, listener)
     return () => ipcRenderer.removeListener(IPC.overlayCharacter, listener)
-  }
+  },
+  resizeOverlay: (width: number, height: number) =>
+    ipcRenderer.send(IPC.overlayResize, width, height),
+  resetOverlayPosition: () => ipcRenderer.invoke(IPC.overlayResetPosition)
 }
 
 contextBridge.exposeInMainWorld('api', api)
