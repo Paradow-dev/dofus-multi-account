@@ -27,7 +27,49 @@ function tokenSvg(classId?: string): SVGElement {
   return svg
 }
 
+/** Chips indexés par id de compte (réutilisés entre les mises à jour). */
+const chipById = new Map<string, HTMLButtonElement>()
+/**
+ * Signature « structurelle » (ids + libellés + classes) : ne change que si la
+ * composition de la barre change réellement — un simple changement de compte
+ * actif n'altère pas la signature, donc pas de reconstruction ni de re-mesure.
+ */
+let lastSig = ''
+
+function applyState(chip: HTMLButtonElement, it: AccountBarItem): void {
+  chip.classList.toggle('is-active', it.active)
+  chip.classList.toggle('is-off', !it.detected)
+  chip.title = it.detected ? `Activer ${it.label}` : `${it.label} — aucune fenêtre détectée`
+}
+
+function buildChip(it: AccountBarItem): HTMLButtonElement {
+  const chip = document.createElement('button')
+  chip.className = 'ab-chip'
+  const name = document.createElement('span')
+  name.className = 'ab-name'
+  name.textContent = it.label
+  chip.append(tokenSvg(it.class), name)
+  chip.addEventListener('click', () => void window.api.focusAccount(it.id))
+  applyState(chip, it)
+  return chip
+}
+
 function render(items: AccountBarItem[]): void {
+  const sig = items.map((i) => `${i.id}|${i.label}|${i.class ?? ''}`).join(';') || 'EMPTY'
+
+  // Composition inchangée : on se contente de rafraîchir les états (actif /
+  // détecté) sur les éléments existants — aucune reconstruction, aucun blink.
+  if (sig === lastSig) {
+    for (const it of items) {
+      const chip = chipById.get(it.id)
+      if (chip) applyState(chip, it)
+    }
+    return
+  }
+
+  // Composition changée (ajout/suppression/renommage/classe) : on reconstruit.
+  lastSig = sig
+  chipById.clear()
   chipsEl.replaceChildren()
 
   if (items.length === 0) {
@@ -40,22 +82,10 @@ function render(items: AccountBarItem[]): void {
   }
 
   for (const it of items) {
-    const chip = document.createElement('button')
-    chip.className =
-      'ab-chip' + (it.active ? ' is-active' : '') + (it.detected ? '' : ' is-off')
-    chip.title = it.detected
-      ? `Activer ${it.label}`
-      : `${it.label} — aucune fenêtre détectée`
-
-    const name = document.createElement('span')
-    name.className = 'ab-name'
-    name.textContent = it.label
-
-    chip.append(tokenSvg(it.class), name)
-    chip.addEventListener('click', () => void window.api.focusAccount(it.id))
+    const chip = buildChip(it)
+    chipById.set(it.id, chip)
     chipsEl.append(chip)
   }
-
   requestAnimationFrame(reportSize)
 }
 
