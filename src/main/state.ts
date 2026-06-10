@@ -50,6 +50,12 @@ export function updateOverlayPosition(x: number, y: number): void {
   })
 }
 
+/** Oublie la position persistée de l'overlay (retour au placement par défaut). */
+export function clearOverlayPosition(): void {
+  const { x: _x, y: _y, ...rest } = currentConfig.overlay
+  currentConfig = saveConfig({ ...currentConfig, overlay: rest })
+}
+
 function broadcastShortcutsState(): void {
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send(IPC.shortcutsState, lastRegistrations)

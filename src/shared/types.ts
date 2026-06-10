@@ -101,7 +101,11 @@ export const IPC = {
   updateCheck: 'update:check',
   updateInstall: 'update:install',
   /** main → overlay : nom du personnage actif à afficher. */
-  overlayCharacter: 'overlay:character'
+  overlayCharacter: 'overlay:character',
+  /** overlay → main : taille souhaitée (px) pour adapter la fenêtre au contenu. */
+  overlayResize: 'overlay:resize',
+  /** renderer → main : réinitialise la position de l'overlay (re-centre en haut). */
+  overlayResetPosition: 'overlay:reset-position'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -132,4 +136,8 @@ export interface RendererApi {
   onUpdateState(cb: (state: UpdateState) => void): () => void
   /** (Fenêtre overlay) S'abonne au nom du personnage actif. Retourne une fonction de désabonnement. */
   onOverlayCharacter(cb: (name: string) => void): () => void
+  /** (Fenêtre overlay) Demande d'adapter la taille de la fenêtre au contenu (px). */
+  resizeOverlay(width: number, height: number): void
+  /** Réinitialise la position de l'overlay (re-centre en haut de l'écran). */
+  resetOverlayPosition(): Promise<void>
 }

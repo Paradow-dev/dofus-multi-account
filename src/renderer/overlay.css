@@ -25,7 +25,11 @@ body.overlay-body {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 100%;
+  /* Largeur ajustée au texte ; la fenêtre est ensuite redimensionnée à cette taille.
+     Max absolu (≈ MAX_W côté main − padding fenêtre) : au-delà, le nom est tronqué
+     (ellipsis). Indépendant de la largeur de fenêtre courante (mesure non circulaire). */
+  width: max-content;
+  max-width: 464px;
   padding: 8px 18px;
   background: var(--bg-elevated);
   border: 1px solid var(--line-strong);
@@ -52,4 +56,6 @@ body.overlay-body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Permet l'ellipsis quand la carte atteint sa largeur max (sinon ne rétrécit pas). */
+  min-width: 0;
 }

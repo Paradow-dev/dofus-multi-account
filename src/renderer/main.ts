@@ -419,18 +419,28 @@ function renderOverlay(): HTMLElement {
     h('div', { class: 'range-row' }, [slider, valueLabel])
   ])
 
+  const resetBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Réinitialiser la position',
+    title: 'Re-centrer l’overlay en haut de l’écran',
+    on: { click: () => void window.api.resetOverlayPosition() }
+  }) as HTMLButtonElement
+  resetBtn.disabled = !ov.enabled
+  const resetRow = h('div', { class: 'row-actions' }, [resetBtn])
+
   const note = h('div', { class: 'alert alert--info' }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
           'Une étiquette <strong>toujours au premier plan</strong> affiche le nom du personnage actif. ' +
-          'Glissez-la pour la repositionner&nbsp;: sa place est mémorisée. ' +
+          'Sa taille s’ajuste au texte. Glissez-la pour la repositionner&nbsp;: sa place est mémorisée ' +
+          '(bouton <strong>« Réinitialiser la position »</strong> pour la re-centrer). ' +
           'Le nom se met à jour à chaque changement de compte (raccourci, cycle ou suivi de tour).'
       })
     ])
   ])
 
-  return sectionEl('overlay', 'Overlay du personnage', h('div', { class: 'combat-row' }, [toggle]), opacityRow, note)
+  return sectionEl('overlay', 'Overlay du personnage', h('div', { class: 'combat-row' }, [toggle]), opacityRow, resetRow, note)
 }
 
 function renderCombat(): HTMLElement {

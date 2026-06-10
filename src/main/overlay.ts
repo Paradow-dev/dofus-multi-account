@@ -1,7 +1,7 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '@shared/types'
-import { getConfig, updateOverlayPosition } from './state'
+import { getConfig, updateOverlayPosition, clearOverlayPosition } from './state'
 
 /**
  * Overlay flottant « nom du personnage actif » :
@@ -11,8 +11,12 @@ import { getConfig, updateOverlayPosition } from './state'
  * La fenêtre est créée à la demande (overlay activé) et détruite sinon.
  */
 
+// Taille initiale ; la fenêtre s'ajuste ensuite au contenu (resizeOverlayWindow).
 const OVERLAY_W = 240
 const OVERLAY_H = 64
+// Bornes de la largeur auto : en deçà on n'a rien à montrer, au-delà on tronque.
+const MIN_W = 72
+const MAX_W = 480
 
 let win: BrowserWindow | null = null
 /** Dernier nom poussé : ré-émis dès que la fenêtre (re)charge. */
@@ -20,11 +24,20 @@ let activeCharacter = ''
 /** Anti-rafale pour la persistance de position pendant un drag. */
 let moveTimer: NodeJS.Timeout | null = null
 
+/** Placement par défaut (centré en haut de l'écran principal) pour une largeur donnée. */
+function defaultPosition(width: number): { x: number; y: number } {
+  const area = screen.getPrimaryDisplay().workArea
+  return {
+    x: area.x + Math.round((area.width - width) / 2),
+    y: area.y + 24
+  }
+}
+
 function createWindow(): void {
   const cfg = getConfig().overlay
-  const area = screen.getPrimaryDisplay().workArea
-  const x = cfg.x ?? area.x + Math.round((area.width - OVERLAY_W) / 2)
-  const y = cfg.y ?? area.y + 24
+  const def = defaultPosition(OVERLAY_W)
+  const x = cfg.x ?? def.x
+  const y = cfg.y ?? def.y
 
   win = new BrowserWindow({
     width: OVERLAY_W,
@@ -106,6 +119,31 @@ export function syncOverlay(): void {
 export function setActiveCharacter(name: string): void {
   activeCharacter = name
   pushCharacter()
+}
+
+/**
+ * Adapte la fenêtre à la taille de contenu demandée par le renderer.
+ * Largeur bornée (MIN_W..MAX_W) : au-delà, le renderer tronque le texte.
+ * Sans position personnalisée, on re-centre horizontalement à chaque ajustement.
+ */
+export function resizeOverlayWindow(width: number, height: number): void {
+  if (!win) return
+  const w = Math.max(MIN_W, Math.min(MAX_W, Math.round(width)))
+  const h = Math.max(1, Math.round(height))
+  const b = win.getBounds()
+  const hasCustomPos = getConfig().overlay.x !== undefined
+  const x = hasCustomPos ? b.x : defaultPosition(w).x
+  if (b.width === w && b.height === h && b.x === x) return
+  win.setBounds({ x, y: b.y, width: w, height: h })
+}
+
+/** Réinitialise la position de l'overlay (oublie la position persistée, re-centre). */
+export function resetOverlayPosition(): void {
+  clearOverlayPosition()
+  if (!win) return
+  const b = win.getBounds()
+  const def = defaultPosition(b.width)
+  win.setBounds({ x: def.x, y: def.y, width: b.width, height: b.height })
 }
 
 /** Détruit la fenêtre d'overlay (overlay désactivé ou fermeture de l'app). */
