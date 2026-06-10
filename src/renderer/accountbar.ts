@@ -3,6 +3,7 @@ import '@ds/fonts.css'
 import '@ds/tokens/tokens.css'
 import './accountbar.css'
 import type { AccountBarItem } from '@shared/types'
+import { classGlyphInner } from './classGlyphs'
 
 const barEl = document.getElementById('bar') as HTMLElement
 const chipsEl = document.getElementById('chips') as HTMLElement
@@ -11,25 +12,18 @@ const chipsEl = document.getElementById('chips') as HTMLElement
 const BODY_PAD = 16
 const NS = 'http://www.w3.org/2000/svg'
 
-/** Jeton (avatar) SVG : disque + silhouette ; la couleur suit `currentColor`. */
-function tokenSvg(): SVGElement {
+/**
+ * Jeton SVG : disque + emblème de la classe (silhouette si aucune classe).
+ * La couleur suit `currentColor` (déterminée par l'état du chip via CSS).
+ */
+function tokenSvg(classId?: string): SVGElement {
   const svg = document.createElementNS(NS, 'svg')
   svg.setAttribute('class', 'ab-token')
-  svg.setAttribute('viewBox', '0 0 28 28')
-  const disc = document.createElementNS(NS, 'circle')
-  disc.setAttribute('class', 'tk-disc')
-  disc.setAttribute('cx', '14')
-  disc.setAttribute('cy', '14')
-  disc.setAttribute('r', '12')
-  const head = document.createElementNS(NS, 'circle')
-  head.setAttribute('class', 'tk-fig')
-  head.setAttribute('cx', '14')
-  head.setAttribute('cy', '11')
-  head.setAttribute('r', '3.6')
-  const bust = document.createElementNS(NS, 'path')
-  bust.setAttribute('class', 'tk-fig')
-  bust.setAttribute('d', 'M8,20 a6 6 0 0 1 12 0 Z')
-  svg.append(disc, head, bust)
+  svg.setAttribute('viewBox', '0 0 24 24')
+  // Disque de fond + emblème (markup en currentColor).
+  svg.innerHTML =
+    `<circle class="tk-disc" cx="12" cy="12" r="11"/>` +
+    `<g class="tk-fig">${classGlyphInner(classId)}</g>`
   return svg
 }
 
@@ -48,27 +42,16 @@ function render(items: AccountBarItem[]): void {
   for (const it of items) {
     const chip = document.createElement('button')
     chip.className =
-      'ab-chip' +
-      (it.active ? ' is-active' : '') +
-      (it.turn ? ' is-turn' : '') +
-      (it.detected ? '' : ' is-off')
-    chip.title = it.turn
-      ? `${it.label} — c’est son tour`
-      : it.detected
-        ? `Activer ${it.label}`
-        : `${it.label} — aucune fenêtre détectée`
+      'ab-chip' + (it.active ? ' is-active' : '') + (it.detected ? '' : ' is-off')
+    chip.title = it.detected
+      ? `Activer ${it.label}`
+      : `${it.label} — aucune fenêtre détectée`
 
     const name = document.createElement('span')
     name.className = 'ab-name'
     name.textContent = it.label
 
-    chip.append(tokenSvg(), name)
-    if (it.turn) {
-      const badge = document.createElement('span')
-      badge.className = 'ab-turn'
-      badge.textContent = '!'
-      chip.append(badge)
-    }
+    chip.append(tokenSvg(it.class), name)
     chip.addEventListener('click', () => void window.api.focusAccount(it.id))
     chipsEl.append(chip)
   }

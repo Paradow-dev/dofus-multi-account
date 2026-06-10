@@ -21,15 +21,9 @@ const MAX_W = 1600
 let win: BrowserWindow | null = null
 /** Id du dernier compte activé (mis en avant dans la barre). */
 let activeAccountId = ''
-/** Id du compte dont c'est le tour (flash) — pulse temporaire. */
-let turnAccountId = ''
-let turnTimer: NodeJS.Timeout | null = null
 let moveTimer: NodeJS.Timeout | null = null
 /** Rafraîchit l'état « détecté » périodiquement (lancements/fermetures de jeu). */
 let refreshTimer: NodeJS.Timeout | null = null
-
-/** Durée d'affichage du pulse « c'est son tour » (ms). */
-const TURN_TTL = 12000
 
 function defaultPosition(width: number): { x: number; y: number } {
   const area = screen.getPrimaryDisplay().workArea
@@ -106,9 +100,9 @@ function pushData(): void {
     .map((a) => ({
       id: a.id,
       label: a.label,
+      class: a.class,
       active: a.id === activeAccountId,
-      detected: detected.has(a.id),
-      turn: a.id === turnAccountId
+      detected: detected.has(a.id)
     }))
   win.webContents.send(IPC.accountBarData, items)
 }
@@ -135,30 +129,6 @@ export function syncAccountBar(): void {
 /** Met à jour le compte actif mis en avant dans la barre. */
 export function setActiveAccount(accountId: string): void {
   activeAccountId = accountId
-  // Activer un compte « consomme » son tour : on coupe le pulse correspondant.
-  if (accountId === turnAccountId) {
-    turnAccountId = ''
-    if (turnTimer) {
-      clearTimeout(turnTimer)
-      turnTimer = null
-    }
-  }
-  pushData()
-}
-
-/**
- * Signale que c'est le tour d'un compte (sa fenêtre flashe) : pulse temporaire
- * dans la barre, effacé après TURN_TTL. Sans effet si la barre n'est pas ouverte.
- */
-export function setTurnAccount(accountId: string): void {
-  if (!win) return
-  turnAccountId = accountId
-  if (turnTimer) clearTimeout(turnTimer)
-  turnTimer = setTimeout(() => {
-    turnAccountId = ''
-    turnTimer = null
-    pushData()
-  }, TURN_TTL)
   pushData()
 }
 
@@ -193,11 +163,6 @@ export function destroyAccountBar(): void {
     clearInterval(refreshTimer)
     refreshTimer = null
   }
-  if (turnTimer) {
-    clearTimeout(turnTimer)
-    turnTimer = null
-  }
-  turnAccountId = ''
   win?.destroy()
   win = null
 }

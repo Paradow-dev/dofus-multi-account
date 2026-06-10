@@ -56,15 +56,6 @@ export function rebuildMenu(getWindow: () => BrowserWindow | null): void {
       }
     },
     {
-      label: 'Suivi de tour automatique',
-      type: 'checkbox',
-      checked: config.turnFollow,
-      click: () => {
-        applyConfig({ ...getConfig(), turnFollow: !getConfig().turnFollow })
-        rebuildMenu(getWindow)
-      }
-    },
-    {
       label: 'Réorganiser les fenêtres (mosaïque)',
       click: () => arrangeGrid(getConfig())
     },
