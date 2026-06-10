@@ -52,6 +52,8 @@ export interface AccountBarItem {
   active: boolean
   /** true si une fenêtre de jeu est actuellement réconciliée à ce compte. */
   detected: boolean
+  /** true si c'est le tour de ce compte (sa fenêtre flashe), pulse temporaire. */
+  turn: boolean
 }
 
 /**

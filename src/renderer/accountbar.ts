@@ -48,16 +48,27 @@ function render(items: AccountBarItem[]): void {
   for (const it of items) {
     const chip = document.createElement('button')
     chip.className =
-      'ab-chip' + (it.active ? ' is-active' : '') + (it.detected ? '' : ' is-off')
-    chip.title = it.detected
-      ? `Activer ${it.label}`
-      : `${it.label} — aucune fenêtre détectée`
+      'ab-chip' +
+      (it.active ? ' is-active' : '') +
+      (it.turn ? ' is-turn' : '') +
+      (it.detected ? '' : ' is-off')
+    chip.title = it.turn
+      ? `${it.label} — c’est son tour`
+      : it.detected
+        ? `Activer ${it.label}`
+        : `${it.label} — aucune fenêtre détectée`
 
     const name = document.createElement('span')
     name.className = 'ab-name'
     name.textContent = it.label
 
     chip.append(tokenSvg(), name)
+    if (it.turn) {
+      const badge = document.createElement('span')
+      badge.className = 'ab-turn'
+      badge.textContent = '!'
+      chip.append(badge)
+    }
     chip.addEventListener('click', () => void window.api.focusAccount(it.id))
     chipsEl.append(chip)
   }

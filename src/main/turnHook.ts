@@ -146,21 +146,37 @@ export function startTurnHook(onFlash: (handle: number) => void): boolean {
     if (!createdHwnd) throw new Error('CreateWindowExW a échoué')
 
     shellMsgId = Number(RegisterWindowMessageW(wstr('SHELLHOOK')))
+
+    // UIPI : autorise la réception du message SHELLHOOK même si une fenêtre
+    // émettrice tourne à un niveau d'intégrité différent (ex. Dofus en admin).
+    // Best-effort : indisponible avant Win7 / peut échouer sans conséquence.
+    try {
+      const ChangeWindowMessageFilterEx = user32.func(
+        'bool ChangeWindowMessageFilterEx(void*, uint32, uint32, void*)'
+      ) as unknown as Fn
+      const MSGFLT_ALLOW = 1
+      ChangeWindowMessageFilterEx(createdHwnd, shellMsgId, MSGFLT_ALLOW, null)
+    } catch (err) {
+      console.warn('[turnHook] ChangeWindowMessageFilterEx indisponible :', err)
+    }
+
     const ok = RegisterShellHookWindow(createdHwnd)
     if (!ok) throw new Error('RegisterShellHookWindow a échoué')
 
-    // Pompe de messages : draine la file et dispatche vers WndProc.
+    // Pompe de messages : draine TOUTE la file du thread (hWnd = NULL) et
+    // dispatche vers WndProc. Filtrer sur createdHwnd pouvait laisser passer
+    // certains messages SHELLHOOK à côté ; on draine donc sans filtre.
     pumpTimer = setInterval(() => {
       try {
         const msg: Record<string, unknown> = {}
         let guard = 0
-        while (PeekMessageW!(msg, createdHwnd, 0, 0, PM_REMOVE) && guard++ < 64) {
+        while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 128) {
           DispatchMessageW!(msg)
         }
       } catch {
         /* ignore */
       }
-    }, 80)
+    }, 60)
 
     started = true
     console.log('[turnHook] actif (SHELLHOOK id=' + shellMsgId + ')')

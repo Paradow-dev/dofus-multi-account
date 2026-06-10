@@ -653,6 +653,8 @@ function renderAccountBar(): HTMLElement {
         html:
           'Une barre <strong>toujours au premier plan</strong> liste tous vos comptes. ' +
           'Le compte <strong>actif</strong> est mis en avant (rouge), ceux <strong>sans fenêtre détectée</strong> sont atténués. ' +
+          'Quand c’est le <strong>tour</strong> d’un perso (sa fenêtre flashe), son compte <strong>pulse</strong> ' +
+          '(activez « Notification quand c’est mon tour » dans Dofus&nbsp;; si Dofus est lancé en administrateur, lancez aussi cette app en administrateur). ' +
           'Un <strong>clic</strong> sur un compte met sa fenêtre au premier plan. ' +
           'Glissez la barre pour la repositionner&nbsp;: sa place est mémorisée. ' +
           'Complémentaire de l’overlay « personnage » (les deux peuvent être actifs).'
