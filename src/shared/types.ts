@@ -154,7 +154,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   browser: {
     enabled: false,
     opacity: 1,
-    homeUrl: 'https://www.dofus.com/fr/mmorpg/encyclopedie/quetes'
+    homeUrl: 'https://www.google.com'
   }
 }
 
