@@ -98,7 +98,24 @@
 }
 
 .combat-row {
-  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Rythme vertical entre les contrôles successifs d'une page de réglages. */
+.page-sec > .field {
+  margin-bottom: 20px;
+}
+
+/* Sous-titre de section dans une page de réglages. */
+.page-sec > .field-label {
+  margin-bottom: 8px;
+}
+.page-sec > .field-label.sec-gap {
+  margin-top: 28px;
 }
 
 /* Espace les encadrés d'information des contrôles qui les précèdent. */
@@ -109,6 +126,13 @@
 /* ----- Mise en page : sidebar + contenu ----- */
 .sidebar {
   min-width: 0;
+}
+/* Sépare les groupes de navigation (la nav empile label + liens sans wrapper). */
+.toc-label {
+  margin-top: 24px;
+}
+.toc-label:first-child {
+  margin-top: 0;
 }
 .toc-link {
   display: flex;
@@ -265,4 +289,65 @@
   font-size: 12px;
   color: var(--ink-2);
   white-space: nowrap;
+}
+
+/* Scrollbar — accordée au design system (Midnight Ember). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--r-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-4);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ----- Navigation responsive -----
+   Le design system masque la navigation (.toc) sous 1024px ; on la rétablit
+   sous forme de barre horizontale compacte au-dessus du contenu, pour qu'elle
+   reste toujours accessible sur petite fenêtre. */
+@media (max-width: 1024px) {
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .toc-label {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .toc-link {
+    width: auto;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    border-radius: var(--r-pill);
+  }
+  .toc-link.active {
+    border-color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .toc-foot {
+    display: none;
+  }
 }

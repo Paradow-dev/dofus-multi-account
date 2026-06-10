@@ -27,6 +27,9 @@ const browserSchema = z
     opacity: z.number().min(0.3).max(1).default(1),
     homeUrl: z.string().default(DEFAULT_CONFIG.browser.homeUrl),
     tabs: z.array(z.string()).optional(),
+    favorites: z
+      .array(z.object({ title: z.string(), url: z.string() }))
+      .optional(),
     x: z.number().optional(),
     y: z.number().optional(),
     width: z.number().optional(),
@@ -38,6 +41,8 @@ const configSchema = z.object({
   accounts: z.array(accountSchema),
   cycleNext: z.string(),
   cyclePrev: z.string(),
+  overlayToggle: z.string().optional(),
+  browserToggle: z.string().optional(),
   layoutMode: layoutModeSchema,
   enabled: z.boolean(),
   // .default : les configs persistées avant cette option restent valides.

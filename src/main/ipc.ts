@@ -1,12 +1,13 @@
 import { app, ipcMain } from 'electron'
-import { IPC, type AppConfig, type CycleDirection } from '@shared/types'
+import { IPC, type AppConfig, type CycleDirection, type Favorite } from '@shared/types'
 import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
 import {
   applyConfig,
   getConfig,
   setBrowserEnabled,
-  persistBrowserTabs
+  persistBrowserTabs,
+  persistBrowserFavorites
 } from './state'
 import { checkForUpdates, quitAndInstall } from './updater'
 import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
@@ -45,4 +46,7 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.browserClose, () => setBrowserEnabled(false))
   ipcMain.handle(IPC.browserConfigGet, () => getConfig().browser)
   ipcMain.on(IPC.browserPersistTabs, (_e, urls: string[]) => persistBrowserTabs(urls))
+  ipcMain.on(IPC.browserPersistFavorites, (_e, favorites: Favorite[]) =>
+    persistBrowserFavorites(favorites)
+  )
 }

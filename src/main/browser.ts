@@ -1,5 +1,6 @@
 import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'node:path'
+import { IPC } from '@shared/types'
 import { getConfig, persistBrowserBounds, setBrowserEnabled } from './state'
 
 /**
@@ -84,13 +85,45 @@ function createWindow(): void {
     win = null
   })
 
-  // Les popups du site (target=_blank, window.open) restent dans la webview
-  // plutôt que d'ouvrir une nouvelle fenêtre Electron incontrôlée.
+  // Les liens ouvrant une nouvelle fenêtre (target=_blank, window.open,
+  // Ctrl/clic-milieu) ouvrent un nouvel onglet dans le navigateur. Les liens
+  // non-http (mailto:, etc.) partent vers le navigateur système.
   win.webContents.on('did-attach-webview', (_e, contents) => {
-    contents.setWindowOpenHandler(({ url }) => {
-      if (/^https?:/i.test(url)) void contents.loadURL(url)
-      else void shell.openExternal(url)
+    contents.setWindowOpenHandler(({ url, disposition }) => {
+      if (/^https?:/i.test(url)) {
+        // disposition 'background-tab' = Ctrl/clic-milieu → onglet en arrière-plan.
+        win?.webContents.send(IPC.browserOpenTab, {
+          url,
+          active: disposition !== 'background-tab'
+        })
+      } else {
+        void shell.openExternal(url)
+      }
       return { action: 'deny' }
+    })
+
+    // Zoom de la page quand la webview a le focus (raccourcis Ctrl +/-/0 et
+    // Ctrl+molette) : appliqué ici puis synchronisé vers la barre d'outils.
+    const applyZoom = (factor: number): void => {
+      const f = Math.min(3, Math.max(0.3, Math.round(factor * 10) / 10))
+      contents.setZoomFactor(f)
+      win?.webContents.send(IPC.browserZoomSync, { wcId: contents.id, factor: f })
+    }
+    contents.on('before-input-event', (e, input) => {
+      if (input.type !== 'keyDown' || !input.control || input.alt || input.meta) return
+      if (input.key === '+' || input.key === '=') {
+        e.preventDefault()
+        applyZoom(contents.getZoomFactor() + 0.1)
+      } else if (input.key === '-') {
+        e.preventDefault()
+        applyZoom(contents.getZoomFactor() - 0.1)
+      } else if (input.key === '0') {
+        e.preventDefault()
+        applyZoom(1)
+      }
+    })
+    contents.on('zoom-changed', (_e, dir) => {
+      applyZoom(contents.getZoomFactor() + (dir === 'in' ? 0.1 : -0.1))
     })
   })
 
