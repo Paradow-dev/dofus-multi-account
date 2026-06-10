@@ -8,7 +8,6 @@ import {
 } from '@shared/types'
 import { loadConfig, saveConfig } from './config'
 import { registerAll } from './shortcuts'
-import { syncTurnFollow } from './turnFollow'
 import { syncOverlay } from './overlay'
 import { syncAccountBar } from './accountBar'
 import { syncBrowser } from './browser'
@@ -34,7 +33,6 @@ export function applyConfig(config: AppConfig): {
 } {
   currentConfig = saveConfig(config)
   lastRegistrations = registerAll(currentConfig)
-  syncTurnFollow()
   syncOverlay()
   syncAccountBar()
   syncBrowser()
@@ -45,7 +43,6 @@ export function applyConfig(config: AppConfig): {
 /** Ré-applique la config courante (au démarrage). */
 export function bootstrapShortcuts(): void {
   lastRegistrations = registerAll(currentConfig)
-  syncTurnFollow()
   syncOverlay()
   syncAccountBar()
   syncBrowser()

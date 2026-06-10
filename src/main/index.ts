@@ -5,7 +5,6 @@ import { bootstrapShortcuts } from './state'
 import { unregisterAll } from './shortcuts'
 import { createTray, destroyTray, rebuildMenu } from './tray'
 import { initUpdater } from './updater'
-import { stopTurnHook } from './turnHook'
 import { destroyOverlay } from './overlay'
 import { destroyAccountBar } from './accountBar'
 import { destroyBrowser } from './browser'
@@ -81,7 +80,6 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   unregisterAll()
-  stopTurnHook()
   destroyOverlay()
   destroyAccountBar()
   destroyBrowser()

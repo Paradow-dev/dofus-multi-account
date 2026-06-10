@@ -17,6 +17,8 @@ export interface AccountConfig {
   order: number
   /** Accélérateur Electron dédié (ex. "Ctrl+Alt+1"), optionnel. */
   shortcut?: string
+  /** Identifiant de classe Dofus (emblème affiché dans la barre de comptes). */
+  class?: string
 }
 
 /** Overlay flottant affichant le nom du personnage actif. */
@@ -48,12 +50,12 @@ export interface AccountBarConfig {
 export interface AccountBarItem {
   id: string
   label: string
+  /** Identifiant de classe Dofus (emblème), si défini. */
+  class?: string
   /** true si ce compte est le dernier activé. */
   active: boolean
   /** true si une fenêtre de jeu est actuellement réconciliée à ce compte. */
   detected: boolean
-  /** true si c'est le tour de ce compte (sa fenêtre flashe), pulse temporaire. */
-  turn: boolean
 }
 
 /**
@@ -101,8 +103,6 @@ export interface AppConfig {
   layoutMode: LayoutMode
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
   enabled: boolean
-  /** Suivi de tour auto : bascule vers la fenêtre qui flashe (tour de jeu). */
-  turnFollow: boolean
   /** Overlay du nom de personnage. */
   overlay: OverlayConfig
   /** Overlay « barre de comptes » (tous les comptes, clic = focus). */
@@ -203,7 +203,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   cyclePrev: 'Ctrl+Alt+Left',
   layoutMode: 'maximize-active',
   enabled: true,
-  turnFollow: false,
   overlay: { enabled: false, opacity: 0.9 },
   accountBar: { enabled: false, opacity: 0.95 },
   browser: {

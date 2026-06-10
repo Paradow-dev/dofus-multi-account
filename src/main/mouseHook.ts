@@ -7,9 +7,9 @@
  * niveau système et déclenche l'action associée — éventuellement combiné à des
  * modificateurs (Ctrl/Alt/Shift/Super), lus via GetAsyncKeyState.
  *
- * Implémenté en FFI (koffi, binaires pré-compilés → pas de compilation native),
- * sur le même modèle que turnHook.ts. Tout est encapsulé dans des try/catch :
- * en cas d'échec, la fonctionnalité se désactive proprement.
+ * Implémenté en FFI (koffi, binaires pré-compilés → pas de compilation native).
+ * Tout est encapsulé dans des try/catch : en cas d'échec, la fonctionnalité se
+ * désactive proprement.
  *
  * Seuls les boutons « non essentiels » sont captés (molette / latéraux) afin de
  * ne jamais détourner le clic gauche/droit normal. Quand un raccourci correspond,

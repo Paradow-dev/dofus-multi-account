@@ -22,15 +22,14 @@ import type {
 } from '@shared/types'
 import { h, clear } from './ui/dom'
 import { eventToAccelerator, eventToMouseAccelerator } from './ui/accelerator'
+import { CLASSES, classGlyphInner } from './classGlyphs'
 
 type PageId =
   | 'accounts'
   | 'shortcuts'
   | 'layout'
   | 'overlay'
-  | 'accountbar'
   | 'browser'
-  | 'turn'
   | 'windows'
   | 'about'
 
@@ -52,7 +51,6 @@ const state: State = {
     cyclePrev: '',
     layoutMode: 'maximize-active',
     enabled: true,
-    turnFollow: false,
     overlay: { enabled: false, opacity: 0.9 },
     accountBar: { enabled: false, opacity: 0.95 },
     browser: {
@@ -153,10 +151,8 @@ const NAV: { group: string; items: { id: PageId; label: string; icon: string }[]
       { id: 'accounts', label: 'Comptes', icon: 'users' },
       { id: 'shortcuts', label: 'Raccourcis', icon: 'key' },
       { id: 'layout', label: 'Disposition', icon: 'grid' },
-      { id: 'overlay', label: 'Overlay', icon: 'tag' },
-      { id: 'accountbar', label: 'Barre de comptes', icon: 'users' },
-      { id: 'browser', label: 'Navigateur', icon: 'globe' },
-      { id: 'turn', label: 'Suivi de tour', icon: 'refresh' }
+      { id: 'overlay', label: 'Overlays', icon: 'tag' },
+      { id: 'browser', label: 'Navigateur', icon: 'globe' }
     ]
   },
   {
@@ -172,10 +168,8 @@ const PAGES: Record<PageId, () => HTMLElement> = {
   accounts: renderAccounts,
   shortcuts: renderCycle,
   layout: renderLayout,
-  overlay: renderOverlay,
-  accountbar: renderAccountBar,
+  overlay: renderOverlays,
   browser: renderBrowser,
-  turn: renderCombat,
   windows: renderDetected,
   about: renderAbout
 }
@@ -386,7 +380,7 @@ function renderAccounts(): HTMLElement {
   if (accounts.length === 0) {
     body.append(
       h('tr', {}, [
-        h('td', { class: 'ink-3', attrs: { colspan: '6', style: 'text-align:center;padding:18px;' },
+        h('td', { class: 'ink-3', attrs: { colspan: '7', style: 'text-align:center;padding:18px;' },
           text: 'Aucun compte. Ajoutez-en un, ou créez-en depuis les fenêtres détectées ci-dessous.' })
       ])
     )
@@ -399,6 +393,7 @@ function renderAccounts(): HTMLElement {
         h('tr', {}, [
           h('th', { text: '' }),
           h('th', { text: 'Compte' }),
+          h('th', { text: 'Classe' }),
           h('th', { text: 'Filtre du titre' }),
           h('th', { text: 'Raccourci' }),
           h('th', { text: '' }),
@@ -443,6 +438,8 @@ function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLE
   })
   const labelCell = h('td', {}, [h('div', { class: 'cell-flex' }, [dot, label])])
 
+  const classCell = h('td', { attrs: { style: 'width:170px;' } }, [classSelect(acc)])
+
   const matchCell = h('td', {}, [
     textInput(acc.matchTitle, 'Texte du titre', (v) => {
       acc.matchTitle = v
@@ -474,10 +471,44 @@ function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLE
   return h('tr', {}, [
     orderCell,
     labelCell,
+    classCell,
     matchCell,
     scCell,
     h('td', { attrs: { style: 'width:74px;' } }, [focusBtn]),
     h('td', { attrs: { style: 'width:44px;' } }, [delBtn])
+  ])
+}
+
+/** Petit emblème SVG d'une classe (couleur accent si définie, sinon atténué). */
+function classEmblem(classId?: string): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(ns, 'svg')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('width', '20')
+  svg.setAttribute('height', '20')
+  svg.style.color = classId ? 'var(--accent)' : 'var(--ink-4)'
+  svg.style.flex = 'none'
+  svg.innerHTML = classGlyphInner(classId)
+  return svg
+}
+
+/** Sélecteur de classe d'un compte (emblème + liste déroulante). */
+function classSelect(acc: AccountConfig): HTMLElement {
+  const sel = h('select', {
+    class: 'input',
+    on: {
+      change: (e) => {
+        acc.class = (e.target as HTMLSelectElement).value || undefined
+        markDirty()
+      }
+    }
+  }) as HTMLSelectElement
+  sel.append(optionEl('', '(aucune)'))
+  for (const c of CLASSES) sel.append(optionEl(c.id, c.label))
+  sel.value = acc.class ?? ''
+  return h('div', { class: 'cell-flex' }, [
+    classEmblem(acc.class),
+    h('div', { class: 'select-wrap' }, [sel, caret()])
   ])
 }
 
@@ -544,38 +575,39 @@ function renderLayout(): HTMLElement {
   )
 }
 
-function renderOverlay(): HTMLElement {
-  const ov = state.config.overlay
-
-  const toggle = renderSwitch('Afficher l’overlay', ov.enabled, (v) => {
-    ov.enabled = v
-    void save() // prend effet immédiatement (crée/détruit la fenêtre)
-  })
-
-  // Curseur d'opacité : aperçu live via le libellé, application à la fin du drag.
+/** Curseur d'opacité réutilisable (aperçu live, application à la fin du drag). */
+function opacityField(value: number, enabled: boolean, onChange: (v: number) => void): HTMLElement {
   const pct = (o: number): string => `${Math.round(o * 100)}%`
-  const valueLabel = h('span', { class: 'upd-pct', text: pct(ov.opacity) })
+  const valueLabel = h('span', { class: 'upd-pct', text: pct(value) })
   const slider = h('input', {
     type: 'range',
     class: 'range',
-    attrs: { min: '0.2', max: '1', step: '0.05', value: String(ov.opacity) },
+    attrs: { min: '0.2', max: '1', step: '0.05', value: String(value) },
     on: {
       input: (e) => {
         valueLabel.textContent = pct(Number((e.target as HTMLInputElement).value))
       },
-      change: (e) => {
-        ov.opacity = Number((e.target as HTMLInputElement).value)
-        void save()
-      }
+      change: (e) => onChange(Number((e.target as HTMLInputElement).value))
     }
   }) as HTMLInputElement
-  slider.disabled = !ov.enabled
-
-  const opacityRow = h('div', { class: 'field' }, [
+  slider.disabled = !enabled
+  return h('div', { class: 'field' }, [
     h('span', { class: 'field-label', text: 'Opacité' }),
     h('div', { class: 'range-row' }, [slider, valueLabel])
   ])
+}
 
+/** Section « overlay du personnage » (étiquette du nom actif). */
+function overlaySection(): (Node | null)[] {
+  const ov = state.config.overlay
+  const toggle = renderSwitch('Afficher l’overlay', ov.enabled, (v) => {
+    ov.enabled = v
+    void save()
+  })
+  const opacityRow = opacityField(ov.opacity, ov.enabled, (v) => {
+    ov.opacity = v
+    void save()
+  })
   const resetBtn = h('button', {
     class: 'btn btn--secondary btn--sm',
     text: 'Réinitialiser la position',
@@ -583,61 +615,35 @@ function renderOverlay(): HTMLElement {
     on: { click: () => void window.api.resetOverlayPosition() }
   }) as HTMLButtonElement
   resetBtn.disabled = !ov.enabled
-  const resetRow = h('div', { class: 'row-actions' }, [resetBtn])
-
   const note = h('div', { class: 'alert alert--info' }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
           'Une étiquette <strong>toujours au premier plan</strong> affiche le nom du personnage actif. ' +
-          'Sa taille s’ajuste au texte. Glissez-la pour la repositionner&nbsp;: sa place est mémorisée ' +
-          '(bouton <strong>« Réinitialiser la position »</strong> pour la re-centrer). ' +
-          'Le nom se met à jour à chaque changement de compte (raccourci, cycle ou suivi de tour).'
+          'Sa taille s’ajuste au texte. Glissez-la pour la repositionner&nbsp;: sa place est mémorisée. ' +
+          'Le nom se met à jour à chaque changement de compte.'
       })
     ])
   ])
-
-  return pageEl(
-    'Overlay du personnage',
-    'Affiche le nom du personnage actif, toujours au premier plan.',
+  return [
     h('div', { class: 'combat-row' }, [toggle]),
     opacityRow,
-    resetRow,
+    h('div', { class: 'row-actions' }, [resetBtn]),
     note
-  )
+  ]
 }
 
-function renderAccountBar(): HTMLElement {
+/** Section « barre de comptes » (tous les comptes, clic = focus). */
+function accountBarSection(): (Node | null)[] {
   const ab = state.config.accountBar
-
   const toggle = renderSwitch('Afficher la barre de comptes', ab.enabled, (v) => {
     ab.enabled = v
-    void save() // prend effet immédiatement (crée/détruit la fenêtre)
+    void save()
   })
-
-  const pct = (o: number): string => `${Math.round(o * 100)}%`
-  const valueLabel = h('span', { class: 'upd-pct', text: pct(ab.opacity) })
-  const slider = h('input', {
-    type: 'range',
-    class: 'range',
-    attrs: { min: '0.2', max: '1', step: '0.05', value: String(ab.opacity) },
-    on: {
-      input: (e) => {
-        valueLabel.textContent = pct(Number((e.target as HTMLInputElement).value))
-      },
-      change: (e) => {
-        ab.opacity = Number((e.target as HTMLInputElement).value)
-        void save()
-      }
-    }
-  }) as HTMLInputElement
-  slider.disabled = !ab.enabled
-
-  const opacityRow = h('div', { class: 'field' }, [
-    h('span', { class: 'field-label', text: 'Opacité' }),
-    h('div', { class: 'range-row' }, [slider, valueLabel])
-  ])
-
+  const opacityRow = opacityField(ab.opacity, ab.enabled, (v) => {
+    ab.opacity = v
+    void save()
+  })
   const resetBtn = h('button', {
     class: 'btn btn--secondary btn--sm',
     text: 'Réinitialiser la position',
@@ -645,30 +651,35 @@ function renderAccountBar(): HTMLElement {
     on: { click: () => void window.api.resetAccountBarPosition() }
   }) as HTMLButtonElement
   resetBtn.disabled = !ab.enabled
-  const resetRow = h('div', { class: 'row-actions' }, [resetBtn])
-
   const note = h('div', { class: 'alert alert--info' }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
-          'Une barre <strong>toujours au premier plan</strong> liste tous vos comptes. ' +
+          'Une barre <strong>toujours au premier plan</strong> liste tous vos comptes (emblème de classe + nom). ' +
           'Le compte <strong>actif</strong> est mis en avant (rouge), ceux <strong>sans fenêtre détectée</strong> sont atténués. ' +
-          'Quand c’est le <strong>tour</strong> d’un perso (sa fenêtre flashe), son compte <strong>pulse</strong> ' +
-          '(activez « Notification quand c’est mon tour » dans Dofus&nbsp;; si Dofus est lancé en administrateur, lancez aussi cette app en administrateur). ' +
           'Un <strong>clic</strong> sur un compte met sa fenêtre au premier plan. ' +
           'Glissez la barre pour la repositionner&nbsp;: sa place est mémorisée. ' +
-          'Complémentaire de l’overlay « personnage » (les deux peuvent être actifs).'
+          'L’emblème provient de la <strong>classe</strong> définie par compte (page Comptes).'
       })
     ])
   ])
-
-  return pageEl(
-    'Barre de comptes',
-    'Tous les comptes en un coup d’œil ; un clic bascule la fenêtre.',
+  return [
     h('div', { class: 'combat-row' }, [toggle]),
     opacityRow,
-    resetRow,
+    h('div', { class: 'row-actions' }, [resetBtn]),
     note
+  ]
+}
+
+/** Page « Overlays » : overlay du personnage + barre de comptes réunis. */
+function renderOverlays(): HTMLElement {
+  return pageEl(
+    'Overlays',
+    'Affichages flottants toujours au premier plan.',
+    h('div', { class: 'field-label', text: 'Overlay du personnage' }),
+    ...overlaySection(),
+    h('div', { class: 'field-label sec-gap', text: 'Barre de comptes' }),
+    ...accountBarSection()
   )
 }
 
@@ -734,31 +745,6 @@ function renderBrowser(): HTMLElement {
     h('div', { class: 'combat-row' }, [toggle, openBtn]),
     homeRow,
     opacityRow,
-    note
-  )
-}
-
-function renderCombat(): HTMLElement {
-  const toggle = renderSwitch('Suivi de tour automatique', state.config.turnFollow, (v) => {
-    state.config.turnFollow = v
-    void save() // prend effet immédiatement (démarre/arrête le hook)
-  })
-
-  const note = h('div', { class: 'alert alert--info' }, [
-    h('div', { class: 'alert-body' }, [
-      h('p', {
-        html:
-          'Quand c’est le tour d’un perso, Dofus fait clignoter sa fenêtre : l’app la met alors au premier plan. ' +
-          'Active l’option <strong>« Notification quand c’est mon tour »</strong> dans Dofus. ' +
-          'Si Dofus tourne en administrateur, lance aussi cette app en administrateur.'
-      })
-    ])
-  ])
-
-  return pageEl(
-    'Suivi de tour',
-    'Bascule automatiquement vers la fenêtre dont c’est le tour de jeu.',
-    h('div', { class: 'combat-row' }, [toggle]),
     note
   )
 }

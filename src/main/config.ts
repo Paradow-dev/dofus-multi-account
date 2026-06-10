@@ -9,7 +9,8 @@ const accountSchema = z.object({
   label: z.string(),
   matchTitle: z.string(),
   order: z.number().int().nonnegative(),
-  shortcut: z.string().optional()
+  shortcut: z.string().optional(),
+  class: z.string().optional()
 })
 
 const overlaySchema = z
@@ -55,8 +56,6 @@ const configSchema = z.object({
   accountBarToggle: z.string().optional(),
   layoutMode: layoutModeSchema,
   enabled: z.boolean(),
-  // .default : les configs persistées avant cette option restent valides.
-  turnFollow: z.boolean().default(false),
   overlay: overlaySchema,
   accountBar: accountBarSchema,
   browser: browserSchema
