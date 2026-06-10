@@ -102,8 +102,116 @@
 }
 
 /* Espace les encadrés d'information des contrôles qui les précèdent. */
-.sec .alert {
+.page-sec .alert {
   margin-top: 20px;
+}
+
+/* ----- Mise en page : sidebar + contenu ----- */
+.sidebar {
+  min-width: 0;
+}
+.toc-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  padding: 7px 12px;
+  margin: 1px 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 100ms ease, border-color 100ms ease, background 100ms ease;
+}
+.toc-link:hover {
+  color: var(--ink);
+}
+.toc-link.active {
+  color: var(--ink);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+.toc-link svg {
+  flex: none;
+  color: var(--ink-4);
+}
+.toc-link.active svg {
+  color: var(--accent);
+}
+.toc-foot {
+  margin-top: 28px;
+  padding: 14px 12px 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.toc-ver {
+  color: var(--ink-3);
+}
+
+/* En-tête de page : un seul titre (+ description) */
+.page-head {
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+.page-desc {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 70ch;
+}
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+/* Chip de version dans l'en-tête */
+.ver-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+
+/* Page À propos */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.about-cell {
+  background: var(--bg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.about-update {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 /* Curseur d'opacité de l'overlay */

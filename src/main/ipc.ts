@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import { IPC, type AppConfig, type CycleDirection } from '@shared/types'
 import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
@@ -8,6 +8,8 @@ import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
+  ipcMain.handle(IPC.appVersion, () => app.getVersion())
+
   ipcMain.handle(IPC.configGet, () => getConfig())
 
   ipcMain.handle(IPC.configSet, (_e, config: AppConfig) => applyConfig(config))

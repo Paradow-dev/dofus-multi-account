@@ -9,6 +9,7 @@ import {
 } from '@shared/types'
 
 const api: RendererApi = {
+  getVersion: () => ipcRenderer.invoke(IPC.appVersion),
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   setConfig: (config: AppConfig) => ipcRenderer.invoke(IPC.configSet, config),
   listWindows: (includeAll = false) => ipcRenderer.invoke(IPC.windowsList, includeAll),

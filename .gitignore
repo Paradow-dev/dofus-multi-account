@@ -3,4 +3,8 @@ out/
 dist/
 *.log
 .DS_Store
+
+# Artefacts d'aperçu (générés par scripts/preview-*.cjs)
 overlay-preview.png
+ui-*.png
+scripts/_overlay-preview.html

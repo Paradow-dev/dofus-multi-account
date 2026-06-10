@@ -93,6 +93,7 @@ export interface UpdateState {
 export const IPC = {
   configGet: 'config:get',
   configSet: 'config:set',
+  appVersion: 'app:version',
   windowsList: 'windows:list',
   actionFocus: 'action:focus',
   actionCycle: 'action:cycle',
@@ -122,6 +123,8 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 /** API exposée au renderer via contextBridge (window.api). */
 export interface RendererApi {
+  /** Version de l'application (depuis package.json / build). */
+  getVersion(): Promise<string>
   getConfig(): Promise<AppConfig>
   setConfig(config: AppConfig): Promise<{ config: AppConfig; shortcuts: ShortcutRegistration[] }>
   listWindows(includeAll?: boolean): Promise<DetectedWindow[]>
