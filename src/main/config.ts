@@ -21,6 +21,15 @@ const overlaySchema = z
   })
   .default({ enabled: false, opacity: 0.9 })
 
+const accountBarSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    opacity: z.number().min(0.2).max(1).default(0.95),
+    x: z.number().optional(),
+    y: z.number().optional()
+  })
+  .default({ enabled: false, opacity: 0.95 })
+
 const browserSchema = z
   .object({
     enabled: z.boolean().default(false),
@@ -43,11 +52,13 @@ const configSchema = z.object({
   cyclePrev: z.string(),
   overlayToggle: z.string().optional(),
   browserToggle: z.string().optional(),
+  accountBarToggle: z.string().optional(),
   layoutMode: layoutModeSchema,
   enabled: z.boolean(),
   // .default : les configs persistées avant cette option restent valides.
   turnFollow: z.boolean().default(false),
   overlay: overlaySchema,
+  accountBar: accountBarSchema,
   browser: browserSchema
 })
 

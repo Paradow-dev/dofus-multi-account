@@ -1,0 +1,127 @@
+/* Overlay « barre de comptes » : fond transparent, barre « pilule » déplaçable. */
+
+html,
+body.ab-body {
+  margin: 0;
+  height: 100vh;
+  width: 100vw;
+  background: transparent;
+  overflow: hidden;
+  cursor: move;
+}
+
+.ab-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* La barre entière est une poignée de déplacement (drag région Electron). */
+.ab-bar {
+  -webkit-app-region: drag;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 1560px;
+  padding: 7px 12px 7px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2);
+}
+
+/* Poignée visuelle (points) à gauche. */
+.ab-grip {
+  flex: none;
+  width: 10px;
+  height: 22px;
+  background-image: radial-gradient(var(--ink-4) 1.3px, transparent 1.3px);
+  background-size: 5px 7px;
+  background-position: 0 2px;
+  opacity: 0.7;
+}
+
+.ab-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Un compte : les chips sont cliquables (hors zone de déplacement). */
+.ab-chip {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 14px 5px 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+
+.ab-chip:hover {
+  background: var(--bg);
+  border-color: var(--line-strong);
+}
+
+.ab-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* Jeton (avatar) : disque + silhouette, couleur via currentColor (selon l'état). */
+.ab-token {
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+.ab-chip {
+  color: var(--ink-2); /* détecté (par défaut) */
+}
+.ab-chip.is-active {
+  color: var(--accent); /* compte actif */
+}
+.ab-token .tk-disc {
+  fill: var(--bg);
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+.ab-token .tk-fig {
+  fill: currentColor;
+}
+
+.ab-name {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ab-chip.is-active .ab-name {
+  color: var(--ink);
+}
+
+/* Compte sans fenêtre détectée : atténué. */
+.ab-chip.is-off {
+  opacity: 0.55;
+}
+
+.ab-empty {
+  -webkit-app-region: no-drag;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  padding: 4px 8px;
+}

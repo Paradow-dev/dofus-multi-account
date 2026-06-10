@@ -28,6 +28,7 @@ type PageId =
   | 'shortcuts'
   | 'layout'
   | 'overlay'
+  | 'accountbar'
   | 'browser'
   | 'turn'
   | 'windows'
@@ -53,6 +54,7 @@ const state: State = {
     enabled: true,
     turnFollow: false,
     overlay: { enabled: false, opacity: 0.9 },
+    accountBar: { enabled: false, opacity: 0.95 },
     browser: {
       enabled: false,
       opacity: 1,
@@ -152,6 +154,7 @@ const NAV: { group: string; items: { id: PageId; label: string; icon: string }[]
       { id: 'shortcuts', label: 'Raccourcis', icon: 'key' },
       { id: 'layout', label: 'Disposition', icon: 'grid' },
       { id: 'overlay', label: 'Overlay', icon: 'tag' },
+      { id: 'accountbar', label: 'Barre de comptes', icon: 'users' },
       { id: 'browser', label: 'Navigateur', icon: 'globe' },
       { id: 'turn', label: 'Suivi de tour', icon: 'refresh' }
     ]
@@ -170,6 +173,7 @@ const PAGES: Record<PageId, () => HTMLElement> = {
   shortcuts: renderCycle,
   layout: renderLayout,
   overlay: renderOverlay,
+  accountbar: renderAccountBar,
   browser: renderBrowser,
   turn: renderCombat,
   windows: renderDetected,
@@ -494,6 +498,10 @@ function renderCycle(): HTMLElement {
       state.config.overlayToggle = a || undefined
       markDirty()
     })),
+    field('Barre de comptes', shortcutCapture(state.config.accountBarToggle ?? '', (a) => {
+      state.config.accountBarToggle = a || undefined
+      markDirty()
+    })),
     field('Overlay navigateur', shortcutCapture(state.config.browserToggle ?? '', (a) => {
       state.config.browserToggle = a || undefined
       markDirty()
@@ -592,6 +600,69 @@ function renderOverlay(): HTMLElement {
   return pageEl(
     'Overlay du personnage',
     'Affiche le nom du personnage actif, toujours au premier plan.',
+    h('div', { class: 'combat-row' }, [toggle]),
+    opacityRow,
+    resetRow,
+    note
+  )
+}
+
+function renderAccountBar(): HTMLElement {
+  const ab = state.config.accountBar
+
+  const toggle = renderSwitch('Afficher la barre de comptes', ab.enabled, (v) => {
+    ab.enabled = v
+    void save() // prend effet immédiatement (crée/détruit la fenêtre)
+  })
+
+  const pct = (o: number): string => `${Math.round(o * 100)}%`
+  const valueLabel = h('span', { class: 'upd-pct', text: pct(ab.opacity) })
+  const slider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0.2', max: '1', step: '0.05', value: String(ab.opacity) },
+    on: {
+      input: (e) => {
+        valueLabel.textContent = pct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        ab.opacity = Number((e.target as HTMLInputElement).value)
+        void save()
+      }
+    }
+  }) as HTMLInputElement
+  slider.disabled = !ab.enabled
+
+  const opacityRow = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Opacité' }),
+    h('div', { class: 'range-row' }, [slider, valueLabel])
+  ])
+
+  const resetBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Réinitialiser la position',
+    title: 'Re-centrer la barre en haut de l’écran',
+    on: { click: () => void window.api.resetAccountBarPosition() }
+  }) as HTMLButtonElement
+  resetBtn.disabled = !ab.enabled
+  const resetRow = h('div', { class: 'row-actions' }, [resetBtn])
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Une barre <strong>toujours au premier plan</strong> liste tous vos comptes. ' +
+          'Le compte <strong>actif</strong> est mis en avant (rouge), ceux <strong>sans fenêtre détectée</strong> sont atténués. ' +
+          'Un <strong>clic</strong> sur un compte met sa fenêtre au premier plan. ' +
+          'Glissez la barre pour la repositionner&nbsp;: sa place est mémorisée. ' +
+          'Complémentaire de l’overlay « personnage » (les deux peuvent être actifs).'
+      })
+    ])
+  ])
+
+  return pageEl(
+    'Barre de comptes',
+    'Tous les comptes en un coup d’œil ; un clic bascule la fenêtre.',
     h('div', { class: 'combat-row' }, [toggle]),
     opacityRow,
     resetRow,

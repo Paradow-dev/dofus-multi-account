@@ -11,6 +11,7 @@ import {
 } from './state'
 import { checkForUpdates, quitAndInstall } from './updater'
 import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
+import { resizeAccountBarWindow, resetAccountBarPosition } from './accountBar'
 import { focusBrowser } from './browser'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
@@ -40,6 +41,12 @@ export function registerIpc(): void {
     resizeOverlayWindow(width, height)
   )
   ipcMain.handle(IPC.overlayResetPosition, () => resetOverlayPosition())
+
+  // Barre de comptes (overlay).
+  ipcMain.on(IPC.accountBarResize, (_e, width: number, height: number) =>
+    resizeAccountBarWindow(width, height)
+  )
+  ipcMain.handle(IPC.accountBarResetPosition, () => resetAccountBarPosition())
 
   // Mini-navigateur (overlay).
   ipcMain.handle(IPC.browserOpen, () => focusBrowser())

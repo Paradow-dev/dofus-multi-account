@@ -10,6 +10,7 @@ import { loadConfig, saveConfig } from './config'
 import { registerAll } from './shortcuts'
 import { syncTurnFollow } from './turnFollow'
 import { syncOverlay } from './overlay'
+import { syncAccountBar } from './accountBar'
 import { syncBrowser } from './browser'
 
 let currentConfig: AppConfig = loadConfig()
@@ -35,6 +36,7 @@ export function applyConfig(config: AppConfig): {
   lastRegistrations = registerAll(currentConfig)
   syncTurnFollow()
   syncOverlay()
+  syncAccountBar()
   syncBrowser()
   broadcastShortcutsState()
   return { config: currentConfig, shortcuts: lastRegistrations }
@@ -45,6 +47,7 @@ export function bootstrapShortcuts(): void {
   lastRegistrations = registerAll(currentConfig)
   syncTurnFollow()
   syncOverlay()
+  syncAccountBar()
   syncBrowser()
 }
 
@@ -63,6 +66,20 @@ export function updateOverlayPosition(x: number, y: number): void {
 export function clearOverlayPosition(): void {
   const { x: _x, y: _y, ...rest } = currentConfig.overlay
   currentConfig = saveConfig({ ...currentConfig, overlay: rest })
+}
+
+/** Persiste la position de la barre de comptes (déplacement à la souris). */
+export function updateAccountBarPosition(x: number, y: number): void {
+  currentConfig = saveConfig({
+    ...currentConfig,
+    accountBar: { ...currentConfig.accountBar, x, y }
+  })
+}
+
+/** Oublie la position persistée de la barre de comptes (re-centre). */
+export function clearAccountBarPosition(): void {
+  const { x: _x, y: _y, ...rest } = currentConfig.accountBar
+  currentConfig = saveConfig({ ...currentConfig, accountBar: rest })
 }
 
 function broadcastShortcutsState(): void {

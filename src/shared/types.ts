@@ -31,6 +31,30 @@ export interface OverlayConfig {
 }
 
 /**
+ * Overlay « barre de comptes » : barre always-on-top listant tous les comptes
+ * (un jeton + nom par compte), le compte actif mis en avant. Clic = focus de la
+ * fenêtre. Complémentaire de l'overlay « personnage courant ».
+ */
+export interface AccountBarConfig {
+  enabled: boolean
+  /** Opacité de la fenêtre (0.2 → 1). */
+  opacity: number
+  /** Position persistée du coin haut-gauche (px écran). Absent = centré en haut. */
+  x?: number
+  y?: number
+}
+
+/** Un compte tel qu'affiché dans la barre de comptes (état runtime). */
+export interface AccountBarItem {
+  id: string
+  label: string
+  /** true si ce compte est le dernier activé. */
+  active: boolean
+  /** true si une fenêtre de jeu est actuellement réconciliée à ce compte. */
+  detected: boolean
+}
+
+/**
  * Mini-navigateur en overlay : fenêtre dédiée, redimensionnable, always-on-top
  * activable, pour consulter des guides de quêtes tout en gardant le jeu visible.
  */
@@ -69,6 +93,8 @@ export interface AppConfig {
   overlayToggle?: string
   /** Accélérateur pour afficher/masquer le navigateur overlay. */
   browserToggle?: string
+  /** Accélérateur pour afficher/masquer la barre de comptes. */
+  accountBarToggle?: string
   /** Disposition appliquée lors d'un changement de compte. */
   layoutMode: LayoutMode
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
@@ -77,6 +103,8 @@ export interface AppConfig {
   turnFollow: boolean
   /** Overlay du nom de personnage. */
   overlay: OverlayConfig
+  /** Overlay « barre de comptes » (tous les comptes, clic = focus). */
+  accountBar: AccountBarConfig
   /** Mini-navigateur en overlay (guides de quêtes). */
   browser: BrowserConfig
 }
@@ -156,7 +184,13 @@ export const IPC = {
   /** main → navigateur : ouvrir un nouvel onglet (lien ouvrant une nouvelle fenêtre). */
   browserOpenTab: 'browser:open-tab',
   /** main → navigateur : zoom appliqué à une webview (raccourci clavier / molette). */
-  browserZoomSync: 'browser:zoom-sync'
+  browserZoomSync: 'browser:zoom-sync',
+  /** main → barre de comptes : liste des comptes et leurs états. */
+  accountBarData: 'accountbar:data',
+  /** barre de comptes → main : taille souhaitée (px) pour adapter la fenêtre. */
+  accountBarResize: 'accountbar:resize',
+  /** renderer → main : réinitialise la position de la barre de comptes. */
+  accountBarResetPosition: 'accountbar:reset-position'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -169,6 +203,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   enabled: true,
   turnFollow: false,
   overlay: { enabled: false, opacity: 0.9 },
+  accountBar: { enabled: false, opacity: 0.95 },
   browser: {
     enabled: false,
     opacity: 1,
@@ -214,4 +249,10 @@ export interface RendererApi {
   onBrowserOpenTab(cb: (tab: { url: string; active: boolean }) => void): () => void
   /** (Fenêtre navigateur) S'abonne au zoom appliqué côté main (raccourci / molette). */
   onBrowserZoom(cb: (z: { wcId: number; factor: number }) => void): () => void
+  /** (Barre de comptes) S'abonne à la liste des comptes et leurs états. */
+  onAccountBarData(cb: (items: AccountBarItem[]) => void): () => void
+  /** (Barre de comptes) Demande d'adapter la taille de la fenêtre au contenu (px). */
+  resizeAccountBar(width: number, height: number): void
+  /** Réinitialise la position de la barre de comptes (re-centre en haut). */
+  resetAccountBarPosition(): Promise<void>
 }

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+    />
+    <title>Barre de comptes</title>
+  </head>
+  <body class="ab-body">
+    <div id="bar" class="ab-bar" title="Glisser pour déplacer">
+      <span class="ab-grip" aria-hidden="true"></span>
+      <div id="chips" class="ab-chips"></div>
+    </div>
+    <script type="module" src="./accountbar.ts"></script>
+  </body>
+</html>
