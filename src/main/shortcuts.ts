@@ -119,13 +119,20 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
 
   // Bascule l'affichage de chaque overlay (lit la config courante au déclenchement,
   // puis applique : (re)enregistre les raccourcis et synchronise les fenêtres).
+  // `applyConfig` ré-enregistre les raccourcis globaux (unregisterAll + register) :
+  // le faire de façon synchrone depuis le callback d'un raccourci global fait
+  // planter Electron. On diffère donc l'application hors de la pile du callback.
   tryRegister(config.overlayToggle ?? '', 'Overlay : nom du personnage', () => {
-    const c = getConfig()
-    applyConfig({ ...c, overlay: { ...c.overlay, enabled: !c.overlay.enabled } })
+    setImmediate(() => {
+      const c = getConfig()
+      applyConfig({ ...c, overlay: { ...c.overlay, enabled: !c.overlay.enabled } })
+    })
   })
   tryRegister(config.browserToggle ?? '', 'Overlay : navigateur', () => {
-    const c = getConfig()
-    applyConfig({ ...c, browser: { ...c.browser, enabled: !c.browser.enabled } })
+    setImmediate(() => {
+      const c = getConfig()
+      applyConfig({ ...c, browser: { ...c.browser, enabled: !c.browser.enabled } })
+    })
   })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.
