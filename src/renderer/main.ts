@@ -23,6 +23,8 @@ import type {
 import { h, clear } from './ui/dom'
 import { eventToAccelerator, eventToMouseAccelerator } from './ui/accelerator'
 
+type PageId = 'accounts' | 'shortcuts' | 'layout' | 'overlay' | 'turn' | 'windows' | 'about'
+
 interface State {
   config: AppConfig
   windows: DetectedWindow[]
@@ -30,6 +32,8 @@ interface State {
   update: UpdateState
   showAllWindows: boolean
   dirty: boolean
+  page: PageId
+  version: string
 }
 
 const state: State = {
@@ -46,12 +50,15 @@ const state: State = {
   registrations: [],
   update: { status: 'idle' },
   showAllWindows: false,
-  dirty: false
+  dirty: false,
+  page: 'accounts',
+  version: ''
 }
 
 const root = document.getElementById('app') as HTMLElement
 
 async function init(): Promise<void> {
+  state.version = await window.api.getVersion()
   state.config = await window.api.getConfig()
   await refreshWindows()
   window.api.onShortcutsState((regs) => {
@@ -117,24 +124,87 @@ const failed = (): ShortcutRegistration[] => state.registrations.filter((r) => !
 
 /* ---------- Rendu ---------- */
 
+/** Navigation latérale : une entrée par fonctionnalité, regroupées par thème. */
+const NAV: { group: string; items: { id: PageId; label: string; icon: string }[] }[] = [
+  {
+    group: 'Configuration',
+    items: [
+      { id: 'accounts', label: 'Comptes', icon: 'users' },
+      { id: 'shortcuts', label: 'Raccourcis', icon: 'key' },
+      { id: 'layout', label: 'Disposition', icon: 'grid' },
+      { id: 'overlay', label: 'Overlay', icon: 'tag' },
+      { id: 'turn', label: 'Suivi de tour', icon: 'refresh' }
+    ]
+  },
+  {
+    group: 'Système',
+    items: [
+      { id: 'windows', label: 'Fenêtres détectées', icon: 'window' },
+      { id: 'about', label: 'À propos', icon: 'info' }
+    ]
+  }
+]
+
+const PAGES: Record<PageId, () => HTMLElement> = {
+  accounts: renderAccounts,
+  shortcuts: renderCycle,
+  layout: renderLayout,
+  overlay: renderOverlay,
+  turn: renderCombat,
+  windows: renderDetected,
+  about: renderAbout
+}
+
+function setPage(id: PageId): void {
+  state.page = id
+  render()
+}
+
 function render(): void {
   clear(root)
   root.append(renderTopbar())
-  const main = h('main', { class: 'page' })
+
+  const content = h('div', { class: 'content' })
 
   const banner = renderUpdateBanner()
-  if (banner) main.append(banner)
-
+  if (banner) content.append(banner)
   const conflicts = failed()
-  if (conflicts.length) main.append(renderConflicts(conflicts))
+  if (conflicts.length) content.append(renderConflicts(conflicts))
 
-  main.append(renderAccounts())
-  main.append(renderCycle())
-  main.append(renderLayout())
-  main.append(renderOverlay())
-  main.append(renderCombat())
-  main.append(renderDetected())
-  root.append(main)
+  content.append(PAGES[state.page]())
+
+  root.append(h('div', { class: 'layout' }, [renderSidebar(), content]))
+}
+
+function renderSidebar(): HTMLElement {
+  const nav = h('nav', { class: 'toc' })
+  for (const section of NAV) {
+    nav.append(h('div', { class: 'toc-label', text: section.group }))
+    for (const item of section.items) {
+      nav.append(
+        h('button', {
+          class: `toc-link${state.page === item.id ? ' active' : ''}`,
+          on: { click: () => setPage(item.id) }
+        }, [iconEl(item.icon), h('span', { text: item.label })])
+      )
+    }
+  }
+  nav.append(
+    h('div', { class: 'toc-foot' }, [
+      h('span', { text: 'paradow' }),
+      h('span', { class: 'toc-ver', text: state.version ? `v${state.version}` : '' })
+    ])
+  )
+  return h('aside', { class: 'sidebar' }, [nav])
+}
+
+/** En-tête de page : un seul titre (+ description courte facultative). */
+function pageEl(title: string, desc: string, ...rest: (Node | null)[]): HTMLElement {
+  const head = h('div', { class: 'page-head' }, [h('h1', { class: 'page-title', text: title })])
+  if (desc) head.append(h('p', { class: 'page-desc', text: desc }))
+  const sec = h('section', { class: 'page-sec' }, [head])
+  for (const r of rest) if (r) sec.append(r)
+  return sec
 }
 
 function renderTopbar(): HTMLElement {
@@ -164,6 +234,7 @@ function renderTopbar(): HTMLElement {
   const meta = h('div', { class: 'topbar-meta' }, [enabled, saveBtn])
   const upd = renderUpdate()
   if (upd) meta.prepend(upd)
+  if (state.version) meta.prepend(h('span', { class: 'ver-chip', text: `v${state.version}` }))
 
   return h('header', { class: 'topbar' }, [brand, meta])
 }
@@ -244,14 +315,42 @@ function renderConflicts(conflicts: ShortcutRegistration[]): HTMLElement {
   ])
 }
 
-function sectionEl(kicker: string, title: string, ...rest: (Node | null)[]): HTMLElement {
-  const head = h('div', { class: 'sec-head' }, [
-    h('div', { class: 'kicker', text: kicker }),
-    h('h2', { class: 'sec-title', text: title })
-  ])
-  const sec = h('section', { class: 'sec' }, [head])
-  for (const r of rest) if (r) sec.append(r)
-  return sec
+/** Jeu d'icônes monochromes (stroke) pour la navigation latérale. */
+const ICONS: Record<string, string[]> = {
+  users: [
+    'M17 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1',
+    'M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7',
+    'M22 20v-1a4 4 0 0 0-3-3.87',
+    'M16 4.13a4 4 0 0 1 0 7.75'
+  ],
+  key: ['M3 6h18v12H3z', 'M7 10h.01', 'M11 10h.01', 'M15 10h.01', 'M7 14h10'],
+  grid: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
+  tag: [
+    'M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L3 13V3h10l7.59 7.59a2 2 0 0 1 0 2.82z',
+    'M7.5 7.5h.01'
+  ],
+  refresh: ['M21 12a9 9 0 1 1-3-6.7', 'M21 3v5h-5'],
+  window: ['M3 4h18v16H3z', 'M3 9h18'],
+  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01']
+}
+
+function iconEl(name: string): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(ns, 'svg')
+  svg.setAttribute('width', '16')
+  svg.setAttribute('height', '16')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('fill', 'none')
+  svg.setAttribute('stroke', 'currentColor')
+  svg.setAttribute('stroke-width', '1.8')
+  svg.setAttribute('stroke-linecap', 'round')
+  svg.setAttribute('stroke-linejoin', 'round')
+  for (const d of ICONS[name] ?? []) {
+    const p = document.createElementNS(ns, 'path')
+    p.setAttribute('d', d)
+    svg.append(p)
+  }
+  return svg
 }
 
 function renderAccounts(): HTMLElement {
@@ -290,7 +389,12 @@ function renderAccounts(): HTMLElement {
     on: { click: () => addAccount() }
   })
 
-  return sectionEl('comptes', 'Comptes', table, h('div', { class: 'row-actions' }, [addBtn]))
+  return pageEl(
+    'Comptes',
+    'Associez chaque personnage à sa fenêtre Dofus pour l’activer au raccourci.',
+    table,
+    h('div', { class: 'row-actions' }, [addBtn])
+  )
 }
 
 function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLElement {
@@ -362,7 +466,11 @@ function renderCycle(): HTMLElement {
       markDirty()
     }))
   ])
-  return sectionEl('cycle', 'Raccourcis de cycle', grid)
+  return pageEl(
+    'Raccourcis de cycle',
+    'Passez au compte suivant ou précédent dans l’ordre défini.',
+    grid
+  )
 }
 
 function renderLayout(): HTMLElement {
@@ -384,7 +492,11 @@ function renderLayout(): HTMLElement {
   const grid = h('div', { class: 'input-grid' }, [
     field('Au changement de compte', h('div', { class: 'select-wrap' }, [select, caret()]))
   ])
-  return sectionEl('disposition', 'Disposition des fenêtres', grid)
+  return pageEl(
+    'Disposition des fenêtres',
+    'Comment placer les fenêtres lors d’un changement de compte.',
+    grid
+  )
 }
 
 function renderOverlay(): HTMLElement {
@@ -440,7 +552,14 @@ function renderOverlay(): HTMLElement {
     ])
   ])
 
-  return sectionEl('overlay', 'Overlay du personnage', h('div', { class: 'combat-row' }, [toggle]), opacityRow, resetRow, note)
+  return pageEl(
+    'Overlay du personnage',
+    'Affiche le nom du personnage actif, toujours au premier plan.',
+    h('div', { class: 'combat-row' }, [toggle]),
+    opacityRow,
+    resetRow,
+    note
+  )
 }
 
 function renderCombat(): HTMLElement {
@@ -460,7 +579,12 @@ function renderCombat(): HTMLElement {
     ])
   ])
 
-  return sectionEl('combat', 'Suivi de tour', h('div', { class: 'combat-row' }, [toggle]), note)
+  return pageEl(
+    'Suivi de tour',
+    'Bascule automatiquement vers la fenêtre dont c’est le tour de jeu.',
+    h('div', { class: 'combat-row' }, [toggle]),
+    note
+  )
 }
 
 function renderDetected(): HTMLElement {
@@ -519,9 +643,63 @@ function renderDetected(): HTMLElement {
     ])
   ])
 
-  const sec = sectionEl('détection', 'Fenêtres détectées', table, hint)
-  sec.querySelector('.sec-head')?.append(tools)
-  return sec
+  return pageEl(
+    'Fenêtres détectées',
+    'Les fenêtres ouvertes et leur association éventuelle à un compte.',
+    h('div', { class: 'page-toolbar' }, [tools]),
+    table,
+    hint
+  )
+}
+
+function renderAbout(): HTMLElement {
+  const rows = h('div', { class: 'about-grid' }, [
+    h('div', { class: 'about-cell' }, [
+      h('span', { class: 'meta-k', text: 'Application' }),
+      h('span', { class: 'meta-v', text: 'Dofus Multi-Account' })
+    ]),
+    h('div', { class: 'about-cell' }, [
+      h('span', { class: 'meta-k', text: 'Version' }),
+      h('span', { class: 'meta-v', text: state.version ? `v${state.version}` : '—' })
+    ]),
+    h('div', { class: 'about-cell' }, [
+      h('span', { class: 'meta-k', text: 'Éditeur' }),
+      h('span', { class: 'meta-v', text: 'paradow' })
+    ])
+  ])
+
+  const u = state.update
+  const statusText =
+    u.status === 'downloaded'
+      ? `Mise à jour v${u.version ?? ''} prête — redémarrez pour l’installer.`
+      : u.status === 'downloading'
+        ? `Téléchargement de la mise à jour… ${u.percent ?? 0}%`
+        : u.status === 'available'
+          ? `Mise à jour v${u.version ?? ''} disponible.`
+          : u.status === 'checking'
+            ? 'Recherche de mise à jour…'
+            : u.status === 'error'
+              ? `Erreur de mise à jour : ${u.error ?? ''}`
+              : 'L’application est à jour.'
+
+  const checkBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Vérifier les mises à jour',
+    on: { click: () => void window.api.checkUpdate() }
+  }) as HTMLButtonElement
+  checkBtn.disabled = u.status === 'checking' || u.status === 'downloading'
+
+  const updateBox = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Mises à jour' }),
+    h('div', { class: 'about-update' }, [h('span', { class: 'small ink-2', text: statusText }), checkBtn])
+  ])
+
+  return pageEl(
+    'À propos',
+    'Informations sur l’application et mises à jour.',
+    rows,
+    updateBox
+  )
 }
 
 /* ---------- Composants ---------- */
