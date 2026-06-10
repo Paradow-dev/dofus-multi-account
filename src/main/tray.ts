@@ -1,5 +1,6 @@
 import { app, Menu, Tray, nativeImage, type BrowserWindow } from 'electron'
 import { getConfig, applyConfig } from './state'
+import { focusBrowser } from './browser'
 import { arrangeGrid } from './shortcuts'
 import { checkForUpdates, quitAndInstall, getUpdateState } from './updater'
 
@@ -66,6 +67,10 @@ export function rebuildMenu(getWindow: () => BrowserWindow | null): void {
     {
       label: 'Réorganiser les fenêtres (mosaïque)',
       click: () => arrangeGrid(getConfig())
+    },
+    {
+      label: 'Ouvrir le navigateur (guides)',
+      click: () => focusBrowser()
     },
     { type: 'separator' },
     updateItem,

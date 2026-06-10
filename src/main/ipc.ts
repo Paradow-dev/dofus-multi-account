@@ -2,9 +2,16 @@ import { app, ipcMain } from 'electron'
 import { IPC, type AppConfig, type CycleDirection } from '@shared/types'
 import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
-import { applyConfig, getConfig } from './state'
+import {
+  applyConfig,
+  getConfig,
+  setBrowserEnabled,
+  updateBrowserConfig,
+  persistBrowserUrl
+} from './state'
 import { checkForUpdates, quitAndInstall } from './updater'
 import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
+import { focusBrowser, applyBrowserAlwaysOnTop, applyBrowserOpacity } from './browser'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -33,4 +40,19 @@ export function registerIpc(): void {
     resizeOverlayWindow(width, height)
   )
   ipcMain.handle(IPC.overlayResetPosition, () => resetOverlayPosition())
+
+  // Mini-navigateur (overlay).
+  ipcMain.handle(IPC.browserOpen, () => focusBrowser())
+  ipcMain.handle(IPC.browserClose, () => setBrowserEnabled(false))
+  ipcMain.handle(IPC.browserConfigGet, () => getConfig().browser)
+  ipcMain.handle(IPC.browserSetAlwaysOnTop, (_e, value: boolean) => {
+    applyBrowserAlwaysOnTop(value)
+    updateBrowserConfig({ alwaysOnTop: value })
+    return value
+  })
+  ipcMain.on(IPC.browserSetOpacity, (_e, value: number) => {
+    applyBrowserOpacity(value)
+    updateBrowserConfig({ opacity: value })
+  })
+  ipcMain.on(IPC.browserPersistUrl, (_e, url: string) => persistBrowserUrl(url))
 }

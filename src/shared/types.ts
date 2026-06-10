@@ -30,6 +30,28 @@ export interface OverlayConfig {
   y?: number
 }
 
+/**
+ * Mini-navigateur en overlay : fenêtre dédiée, redimensionnable, always-on-top
+ * activable, pour consulter des guides de quêtes tout en gardant le jeu visible.
+ */
+export interface BrowserConfig {
+  /** Affiche (ou non) la fenêtre du mini-navigateur. */
+  enabled: boolean
+  /** Maintient (ou non) la fenêtre au-dessus de toutes les autres. */
+  alwaysOnTop: boolean
+  /** Opacité de la fenêtre (0.3 → 1). */
+  opacity: number
+  /** Page d'accueil ouverte par défaut et via le bouton « Accueil ». */
+  homeUrl: string
+  /** Dernière URL visitée (restaurée à la réouverture). */
+  lastUrl?: string
+  /** Géométrie persistée de la fenêtre (px écran). Absente = centrée. */
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+}
+
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
   accounts: AccountConfig[]
@@ -45,6 +67,8 @@ export interface AppConfig {
   turnFollow: boolean
   /** Overlay du nom de personnage. */
   overlay: OverlayConfig
+  /** Mini-navigateur en overlay (guides de quêtes). */
+  browser: BrowserConfig
 }
 
 /** Une fenêtre détectée à l'exécution. */
@@ -106,7 +130,21 @@ export const IPC = {
   /** overlay → main : taille souhaitée (px) pour adapter la fenêtre au contenu. */
   overlayResize: 'overlay:resize',
   /** renderer → main : réinitialise la position de l'overlay (re-centre en haut). */
-  overlayResetPosition: 'overlay:reset-position'
+  overlayResetPosition: 'overlay:reset-position',
+  /** renderer → main : ouvre (ou met au premier plan) la fenêtre du navigateur. */
+  browserOpen: 'browser:open',
+  /** renderer → main : ferme la fenêtre du navigateur. */
+  browserClose: 'browser:close',
+  /** navigateur → main : lit la configuration courante du navigateur. */
+  browserConfigGet: 'browser:config-get',
+  /** navigateur → main : bascule l'épinglage (always-on-top). */
+  browserSetAlwaysOnTop: 'browser:set-always-on-top',
+  /** navigateur → main : règle l'opacité de la fenêtre. */
+  browserSetOpacity: 'browser:set-opacity',
+  /** navigateur → main : mémorise la dernière URL visitée. */
+  browserPersistUrl: 'browser:persist-url',
+  /** main → fenêtres : nouvel état de configuration du navigateur (réglages). */
+  browserState: 'browser:state'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -118,7 +156,13 @@ export const DEFAULT_CONFIG: AppConfig = {
   layoutMode: 'maximize-active',
   enabled: true,
   turnFollow: false,
-  overlay: { enabled: false, opacity: 0.9 }
+  overlay: { enabled: false, opacity: 0.9 },
+  browser: {
+    enabled: false,
+    alwaysOnTop: true,
+    opacity: 1,
+    homeUrl: 'https://www.dofus.com/fr/mmorpg/encyclopedie/quetes'
+  }
 }
 
 /** API exposée au renderer via contextBridge (window.api). */
@@ -143,4 +187,18 @@ export interface RendererApi {
   resizeOverlay(width: number, height: number): void
   /** Réinitialise la position de l'overlay (re-centre en haut de l'écran). */
   resetOverlayPosition(): Promise<void>
+  /** Ouvre (ou met au premier plan) la fenêtre du mini-navigateur. */
+  openBrowser(): Promise<void>
+  /** Ferme la fenêtre du mini-navigateur. */
+  closeBrowser(): Promise<void>
+  /** (Fenêtre navigateur) Lit la configuration courante du navigateur. */
+  getBrowserConfig(): Promise<BrowserConfig>
+  /** Épingle/désépingle le navigateur (always-on-top). Retourne le nouvel état. */
+  setBrowserAlwaysOnTop(value: boolean): Promise<boolean>
+  /** Règle l'opacité de la fenêtre du navigateur (0.3 → 1). */
+  setBrowserOpacity(value: number): void
+  /** (Fenêtre navigateur) Mémorise la dernière URL visitée. */
+  persistBrowserUrl(url: string): void
+  /** S'abonne aux changements de réglages du navigateur. Retourne une fonction de désabonnement. */
+  onBrowserState(cb: (config: BrowserConfig) => void): () => void
 }

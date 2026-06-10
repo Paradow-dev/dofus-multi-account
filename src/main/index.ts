@@ -7,6 +7,7 @@ import { createTray, destroyTray, rebuildMenu } from './tray'
 import { initUpdater } from './updater'
 import { stopTurnHook } from './turnHook'
 import { destroyOverlay } from './overlay'
+import { destroyBrowser } from './browser'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -81,6 +82,7 @@ app.on('will-quit', () => {
   unregisterAll()
   stopTurnHook()
   destroyOverlay()
+  destroyBrowser()
   destroyTray()
 })
 
