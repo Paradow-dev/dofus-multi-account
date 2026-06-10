@@ -3,10 +3,11 @@ import '@ds/fonts.css'
 import '@ds/tokens/tokens.css'
 import '@ds/ds/styles.css'
 import './app.css'
-import markUrl from '@ds/logo/midnight-ember__mark-square.svg'
-import faviconUrl from '@ds/logo/midnight-ember__favicon-512.svg'
+import markUrl from '@ds/logo/dofus-multi-account__mark.svg'
 
-// Favicon de la page = logo du design system (Midnight Ember).
+const faviconUrl = markUrl
+
+// Favicon de la page = logo de l'app (« jetons de comptes »).
 const favicon = document.createElement('link')
 favicon.rel = 'icon'
 favicon.type = 'image/svg+xml'
