@@ -12,6 +12,15 @@ const accountSchema = z.object({
   shortcut: z.string().optional()
 })
 
+const overlaySchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    opacity: z.number().min(0.2).max(1).default(0.9),
+    x: z.number().optional(),
+    y: z.number().optional()
+  })
+  .default({ enabled: false, opacity: 0.9 })
+
 const configSchema = z.object({
   accounts: z.array(accountSchema),
   cycleNext: z.string(),
@@ -19,7 +28,8 @@ const configSchema = z.object({
   layoutMode: layoutModeSchema,
   enabled: z.boolean(),
   // .default : les configs persistées avant cette option restent valides.
-  turnFollow: z.boolean().default(false)
+  turnFollow: z.boolean().default(false),
+  overlay: overlaySchema
 })
 
 const store = new Store<{ config: AppConfig }>({

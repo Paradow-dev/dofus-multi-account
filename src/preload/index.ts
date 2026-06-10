@@ -26,6 +26,11 @@ const api: RendererApi = {
     const listener = (_e: unknown, s: UpdateState): void => cb(s)
     ipcRenderer.on(IPC.updateState, listener)
     return () => ipcRenderer.removeListener(IPC.updateState, listener)
+  },
+  onOverlayCharacter: (cb: (name: string) => void) => {
+    const listener = (_e: unknown, name: string): void => cb(name)
+    ipcRenderer.on(IPC.overlayCharacter, listener)
+    return () => ipcRenderer.removeListener(IPC.overlayCharacter, listener)
   }
 }
 
