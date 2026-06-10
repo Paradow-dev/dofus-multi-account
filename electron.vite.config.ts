@@ -32,6 +32,7 @@ export default defineConfig({
         input: {
           index: resolve('src/renderer/index.html'),
           overlay: resolve('src/renderer/overlay.html'),
+          accountbar: resolve('src/renderer/accountbar.html'),
           browser: resolve('src/renderer/browser.html')
         }
       }

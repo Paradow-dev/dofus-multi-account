@@ -7,6 +7,7 @@ import type {
 } from '@shared/types'
 import { focusAccount, applyGridLayout } from './windowManager'
 import { setActiveCharacter } from './overlay'
+import { setActiveAccount } from './accountBar'
 import { getConfig, applyConfig } from './state'
 import {
   isMouseAccelerator,
@@ -29,8 +30,11 @@ function focusWithLayout(config: AppConfig, account: AccountConfig): boolean {
     applyGridLayout(config.accounts)
     focusAccount(account, 'none') // re-met le compte choisi au premier plan
   }
-  // Met à jour l'overlay avec le personnage qui vient d'être activé.
-  if (ok) setActiveCharacter(account.label)
+  // Met à jour les overlays avec le compte qui vient d'être activé.
+  if (ok) {
+    setActiveCharacter(account.label)
+    setActiveAccount(account.id)
+  }
   return ok
 }
 
@@ -132,6 +136,12 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
     setImmediate(() => {
       const c = getConfig()
       applyConfig({ ...c, browser: { ...c.browser, enabled: !c.browser.enabled } })
+    })
+  })
+  tryRegister(config.accountBarToggle ?? '', 'Overlay : barre de comptes', () => {
+    setImmediate(() => {
+      const c = getConfig()
+      applyConfig({ ...c, accountBar: { ...c.accountBar, enabled: !c.accountBar.enabled } })
     })
   })
 

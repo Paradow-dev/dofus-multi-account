@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import {
   IPC,
+  type AccountBarItem,
   type AppConfig,
   type BrowserConfig,
   type CycleDirection,
@@ -58,7 +59,15 @@ const api: RendererApi = {
     const listener = (_e: unknown, z: { wcId: number; factor: number }): void => cb(z)
     ipcRenderer.on(IPC.browserZoomSync, listener)
     return () => ipcRenderer.removeListener(IPC.browserZoomSync, listener)
-  }
+  },
+  onAccountBarData: (cb: (items: AccountBarItem[]) => void) => {
+    const listener = (_e: unknown, items: AccountBarItem[]): void => cb(items)
+    ipcRenderer.on(IPC.accountBarData, listener)
+    return () => ipcRenderer.removeListener(IPC.accountBarData, listener)
+  },
+  resizeAccountBar: (width: number, height: number) =>
+    ipcRenderer.send(IPC.accountBarResize, width, height),
+  resetAccountBarPosition: () => ipcRenderer.invoke(IPC.accountBarResetPosition)
 }
 
 contextBridge.exposeInMainWorld('api', api)
