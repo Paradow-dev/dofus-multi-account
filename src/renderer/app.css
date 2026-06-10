@@ -101,6 +101,11 @@
   margin-bottom: 14px;
 }
 
+/* Espace les encadrés d'information des contrôles qui les précèdent. */
+.sec .alert {
+  margin-top: 20px;
+}
+
 /* Curseur d'opacité de l'overlay */
 .range-row {
   display: flex;
