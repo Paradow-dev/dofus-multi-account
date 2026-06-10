@@ -4,11 +4,11 @@ import { focusBrowser } from './browser'
 import { arrangeGrid } from './shortcuts'
 import { checkForUpdates, quitAndInstall, getUpdateState } from './updater'
 
-// Marque « Midnight Ember » 32×32 (chevron clair + curseur rouge, fond transparent),
-// rasterisée depuis le SVG du design system via scripts/gen-icons.mjs.
-// Embarquée en base64 pour éviter tout asset externe au runtime.
+// Logo « jetons de comptes » 32×32 (pastilles superposées, jeton actif rouge,
+// fond transparent), rasterisé via scripts/gen-icons.mjs.
+// Embarqué en base64 pour éviter tout asset externe au runtime.
 const TRAY_ICON_PNG =
-  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAi0lEQVR42u2VsQ2AMAwEGSEjMEJGYAS6NCkYgRHYgBEYhREYgd4NsuTeKJJTU8EL8Elf+2Q7TtM4juO8CWEKaIHVElACszCpMO3CFFESvTAdJjKgJKIwbSaxQEZSilpxNZkW1Y3RJEr6/whARwBdQugzvDpEmlOnOWnN46dYc2o1p6nme5+R4zjOHZzhmsI8DWtx+gAAAABJRU5ErkJggg=='
+  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACNElEQVR42u1VTU8TURTlJ7B0gUn9aAxizbQYsJVCSwsTWqYtSPNa+hIHK2a0wbQSkEAINRibuJloYkyqaXeNG8MPcK/s2LFTdi4h/oJj7gtv0lIWdmRj8k5ykpk3i3PuuffO6+tTUFBQUPgLcNPycNMqc9OyuWlVK2vbZr3RKtcbrSrx8/uPZXBmgrMqOLPBGb17LkrcTqYZfP4gvIManj5bx9ZODbNzeYxFE3jLFvFjMYf1cAyF0QkYd8KwQlHsZ9IgM/8q3gyMhHFp4Jrg0vIKFnJLuHx1SPD53TF8SSRxfWj0XJIpcNZ0K26Gxqcd8WA4jtUXVUc8OOgXVbYLyurbz97FdTJh9myAFYoHA54bjoHK2jZ8gZBj4FMsLiKXQvQMzgRJVJ4HbgdxnMse9GyA+i7FiZs7NUec+D01e17cgmfbQkn1Gn+/npzvMLDVZcDo6vnh/Tn8zmcx4b/Xcf7VMMhYv+sEaPp3a7YjTq34uVzsiJnEZQJkgubBdQKnKexd8d4SBigNMkBrRwZK5Q18e7krYieBV5EpR1ySqqZvlAY423NjICLbMBKKYnLacOaA/gEP+SMczmdE9TT5NHjtJFNt8Udcr2JMT0Fuw4yxIFbRe3NYGNF9w9hPp7p6LttCw+hqBc+YyLBC8Wh8MiGSKDx4jDf2B9EGbj7B61IFv1ZKQkxW3tRncJLPHoGzzEXeBxqZodbQ3VBvtLR6oxU5pUb/foqaRMGZpm5QBQWF/wZ/ALXFtuvZPsUOAAAAAElFTkSuQmCC'
 
 let tray: Tray | null = null
 

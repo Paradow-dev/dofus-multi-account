@@ -1,9 +1,10 @@
 /**
- * Génère les icônes de l'application (PNG + ICO) à partir du logo du design
- * system « Midnight Ember » (design-system/logo/midnight-ember__favicon-512.svg).
+ * Génère les icônes de l'application (PNG + ICO) — logo propre à l'app :
+ * concept « jetons de comptes » (trois pastilles/avatars superposés, le plus
+ * en avant en rouge = compte actif), qui illustre la gestion multi-compte.
  *
  * Rasteriseur pur Node (aucune dépendance) : le logo n'est composé que de formes
- * géométriques simples (fond arrondi, chevron tracé, accent rouge), rendues ici
+ * géométriques simples (fond arrondi, disques, anneaux, silhouettes), rendues ici
  * par échantillonnage supersamplé pour un anti-crénelage propre.
  *
  * Sorties :
@@ -22,18 +23,26 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /* ---------- Géométrie (espace de référence 512×512, cf. favicon-512.svg) ---------- */
 
 const BASE = 512
-const BG = [0x0e, 0x11, 0x16] // #0E1116
-const STROKE = [0xf4, 0xf1, 0xea] // #F4F1EA
-const ACCENT = [0xff, 0x5c, 0x57] // #FF5C57
+const BG = [0x0e, 0x11, 0x16] // #0E1116 — fond
+const ACCENT = [0xff, 0x5c, 0x57] // #FF5C57 — jeton actif (rouge Midnight Ember)
+const MID = [0x9a, 0x9e, 0xa6] // jeton intermédiaire (gris clair)
+const DIM = [0x5c, 0x60, 0x68] // jeton arrière (gris sombre)
 const CORNER = 96 // rayon des coins arrondis
-// translate(110 110) scale(2.92) appliqué aux coordonnées locales (0..100)
-const TX = 110
-const TY = 110
-const SC = 2.92
-const local = (x, y) => [TX + SC * x, TY + SC * y]
-const CHEVRON = [local(28, 22), local(64, 50), local(28, 78)]
-const STROKE_W = 9 * SC // épaisseur du tracé
-const RED = { x: TX + SC * 70, y: TY + SC * 72, w: 18 * SC, h: 8 * SC }
+
+/**
+ * Concept « jetons de comptes » : trois pastilles (silhouettes de personnage)
+ * qui se chevauchent, la plus en avant en rouge = compte actif. Évoque le
+ * multi-compte / multi-fenêtre. Espace de référence 512×512.
+ */
+const TOKEN_R = 96 // rayon d'un jeton
+const RING_W = 12 // épaisseur de l'anneau
+// Du fond vers l'avant : arrière (gris sombre), milieu (gris clair), avant (rouge).
+// Léger fond élevé pour détacher les pastilles superposées.
+const TOKENS = [
+  { cx: 190, cy: 262, fill: [0x18, 0x1c, 0x23], ring: DIM, person: DIM },
+  { cx: 256, cy: 262, fill: [0x1d, 0x22, 0x2b], ring: MID, person: MID },
+  { cx: 322, cy: 262, fill: [0x24, 0x2b, 0x37], ring: ACCENT, person: ACCENT }
+]
 
 /* ---------- Tests géométriques ---------- */
 
@@ -49,41 +58,52 @@ function insideRoundedRect(px, py, size, radius) {
   return outside <= 0
 }
 
-/** Segment épais avec capuchons carrés (square cap) : prolonge de hw à chaque bout. */
-function inSquareCappedSegment(px, py, a, b, hw) {
-  const dx = b[0] - a[0]
-  const dy = b[1] - a[1]
-  const len = Math.hypot(dx, dy)
-  if (len === 0) return false
-  const ux = dx / len
-  const uy = dy / len
-  const along = (px - a[0]) * ux + (py - a[1]) * uy
-  const perp = Math.abs((px - a[0]) * -uy + (py - a[1]) * ux)
-  return along >= -hw && along <= len + hw && perp <= hw
+/**
+ * Silhouette « personnage » dans un jeton (coordonnées déjà mises à l'échelle) :
+ * tête (disque) + buste (demi-ellipse), reliés pour former une icône d'avatar.
+ */
+function insidePerson(px, py, cx, cy, r) {
+  const headR = 0.26 * r
+  const headCy = cy - 0.2 * r
+  if (Math.hypot(px - cx, py - headCy) <= headR) return true
+  // Buste : moitié supérieure d'une ellipse.
+  const bustCy = cy + 0.5 * r
+  const rx = 0.46 * r
+  const ry = 0.46 * r
+  const nx = (px - cx) / rx
+  const ny = (py - bustCy) / ry
+  return py <= bustCy && nx * nx + ny * ny <= 1
+}
+
+/** Couleur du jeton le plus en avant couvrant ce point, ou null. */
+function tokenAt(px, py, scale) {
+  // TOKENS est ordonné arrière→avant : on teste de l'avant vers l'arrière.
+  for (let i = TOKENS.length - 1; i >= 0; i--) {
+    const t = TOKENS[i]
+    const cx = t.cx * scale
+    const cy = t.cy * scale
+    const r = TOKEN_R * scale
+    const d = Math.hypot(px - cx, py - cy)
+    if (d <= r) {
+      if (d > r - RING_W * scale) return t.ring
+      if (insidePerson(px, py, cx, cy, r)) return t.person
+      return t.fill
+    }
+  }
+  return null
 }
 
 /**
  * Couleur RGBA d'un point (échantillon unique) dans l'espace mis à l'échelle.
- * `transparentBg` : sans fond (usage tray) — seuls le chevron et l'accent sont
- * peints, le reste reste transparent.
+ * `transparentBg` : sans fond arrondi (usage tray) — seuls les jetons sont peints.
  */
 function sample(px, py, scale, transparentBg) {
   const size = BASE * scale
   const onIcon = insideRoundedRect(px, py, size, CORNER * scale)
   if (!transparentBg && !onIcon) return null // hors icône → transparent
 
-  const hw = (STROKE_W * scale) / 2
-  // Ordre de peinture : fond → chevron → accent rouge.
-  const rx = RED.x * scale
-  const ry = RED.y * scale
-  if (px >= rx && px <= rx + RED.w * scale && py >= ry && py <= ry + RED.h * scale) {
-    return ACCENT
-  }
-  for (let i = 0; i < CHEVRON.length - 1; i++) {
-    const a = [CHEVRON[i][0] * scale, CHEVRON[i][1] * scale]
-    const b = [CHEVRON[i + 1][0] * scale, CHEVRON[i + 1][1] * scale]
-    if (inSquareCappedSegment(px, py, a, b, hw)) return STROKE
-  }
+  const tk = tokenAt(px, py, scale)
+  if (tk) return tk
   return transparentBg ? null : BG
 }
 
@@ -218,7 +238,7 @@ const pngs = icoSizes.map((size) => ({ size, data: encodePNG(renderRGBA(size), s
 writeFileSync(join(outDir, 'icon.ico'), encodeICO(pngs))
 writeFileSync(join(outDir, 'icon.png'), encodePNG(renderRGBA(512), 512))
 
-// Icône du tray (fond transparent, chevron clair) embarquée en base64 dans
+// Icône du tray (fond transparent, jetons) embarquée en base64 dans
 // src/main/tray.ts — affichée telle quelle dans la zone de notification.
 const trayPng = encodePNG(renderRGBA(32, true), 32)
 writeFileSync(join(outDir, 'tray.png'), trayPng)
