@@ -40,10 +40,7 @@ const api: RendererApi = {
   openBrowser: () => ipcRenderer.invoke(IPC.browserOpen),
   closeBrowser: () => ipcRenderer.invoke(IPC.browserClose),
   getBrowserConfig: () => ipcRenderer.invoke(IPC.browserConfigGet),
-  setBrowserAlwaysOnTop: (value: boolean) =>
-    ipcRenderer.invoke(IPC.browserSetAlwaysOnTop, value),
-  setBrowserOpacity: (value: number) => ipcRenderer.send(IPC.browserSetOpacity, value),
-  persistBrowserUrl: (url: string) => ipcRenderer.send(IPC.browserPersistUrl, url),
+  persistBrowserTabs: (urls: string[]) => ipcRenderer.send(IPC.browserPersistTabs, urls),
   onBrowserState: (cb: (config: BrowserConfig) => void) => {
     const listener = (_e: unknown, config: BrowserConfig): void => cb(config)
     ipcRenderer.on(IPC.browserState, listener)

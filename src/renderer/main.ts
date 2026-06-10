@@ -55,7 +55,6 @@ const state: State = {
     overlay: { enabled: false, opacity: 0.9 },
     browser: {
       enabled: false,
-      alwaysOnTop: true,
       opacity: 1,
       homeUrl: 'https://www.dofus.com/fr/mmorpg/encyclopedie/quetes'
     }
@@ -606,11 +605,6 @@ function renderBrowser(): HTMLElement {
   }, true)
   const homeRow = field('Page d’accueil', homeInput)
 
-  const pin = renderSwitch('Toujours au premier plan', bx.alwaysOnTop, (v) => {
-    bx.alwaysOnTop = v
-    void save()
-  })
-
   // Curseur d'opacité : aperçu live via le libellé, application à la fin du drag.
   const pct = (o: number): string => `${Math.round(o * 100)}%`
   const valueLabel = h('span', { class: 'upd-pct', text: pct(bx.opacity) })
@@ -638,9 +632,10 @@ function renderBrowser(): HTMLElement {
       h('p', {
         html:
           'Une fenêtre <strong>navigateur</strong> légère, redimensionnable et déplaçable ' +
-          '(glissez la barre d’outils). Idéale pour garder un <strong>guide de quêtes</strong> au premier ' +
-          'plan pendant le jeu. L’épinglage <strong>« Toujours au premier plan »</strong> se bascule aussi ' +
-          'depuis la barre d’outils (📌). La dernière page et la taille de la fenêtre sont mémorisées.'
+          '(glissez la barre d’outils), <strong>toujours au premier plan</strong> pendant le jeu. ' +
+          'Gérez plusieurs <strong>guides de quêtes</strong> via les <strong>onglets</strong>. ' +
+          'Réglez sa transparence avec l’<strong>opacité</strong> ci-dessus. ' +
+          'Les onglets ouverts et la taille de la fenêtre sont mémorisés.'
       })
     ])
   ])
@@ -650,7 +645,6 @@ function renderBrowser(): HTMLElement {
     'Un mini-navigateur en overlay pour consulter des guides tout en jouant.',
     h('div', { class: 'combat-row' }, [toggle, openBtn]),
     homeRow,
-    h('div', { class: 'combat-row' }, [pin]),
     opacityRow,
     note
   )

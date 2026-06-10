@@ -51,7 +51,8 @@ function createWindow(): void {
     minimizable: true,
     maximizable: true,
     skipTaskbar: false,
-    alwaysOnTop: cfg.alwaysOnTop,
+    // Toujours au premier plan : c'est la raison d'être de l'overlay.
+    alwaysOnTop: true,
     backgroundColor: '#0E1116',
     show: false,
     webPreferences: {
@@ -64,7 +65,8 @@ function createWindow(): void {
     }
   })
 
-  if (cfg.alwaysOnTop) win.setAlwaysOnTop(true, 'screen-saver')
+  // Reste au-dessus même des fenêtres plein écran / autres always-on-top.
+  win.setAlwaysOnTop(true, 'screen-saver')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   win.setOpacity(cfg.opacity)
 
@@ -110,24 +112,11 @@ export function syncBrowser(): void {
   const cfg = getConfig().browser
   if (cfg.enabled) {
     if (!win) createWindow()
-    else {
-      // Fenêtre déjà ouverte : on réaligne les réglages sans voler le focus.
-      win.setAlwaysOnTop(cfg.alwaysOnTop, cfg.alwaysOnTop ? 'screen-saver' : 'normal')
-      win.setOpacity(cfg.opacity)
-    }
+    // Fenêtre déjà ouverte : réaligne l'opacité sans voler le focus.
+    else win.setOpacity(cfg.opacity)
   } else {
     destroyBrowser()
   }
-}
-
-/** Applique l'épinglage (always-on-top) à la fenêtre ouverte. */
-export function applyBrowserAlwaysOnTop(value: boolean): void {
-  win?.setAlwaysOnTop(value, value ? 'screen-saver' : 'normal')
-}
-
-/** Applique l'opacité à la fenêtre ouverte. */
-export function applyBrowserOpacity(value: number): void {
-  win?.setOpacity(value)
 }
 
 /** Met la fenêtre navigateur au premier plan (la crée si besoin). */

@@ -1,4 +1,4 @@
-/* Mini-navigateur en overlay : barre d'outils maison + webview plein cadre. */
+/* Mini-navigateur en overlay : onglets + barre d'outils maison + webviews. */
 
 html,
 body.browser-body {
@@ -13,7 +13,113 @@ body.browser-body {
   flex-direction: column;
 }
 
-/* La barre est une poignée de déplacement (drag région Electron) sauf contrôles. */
+/* ---------- Barre d'onglets ---------- */
+/* La bande est une poignée de déplacement (drag) ; les onglets, non. */
+.bx-tabs {
+  -webkit-app-region: drag;
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 34px;
+  padding: 6px 8px 0;
+  background: var(--bg-subtle);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  user-select: none;
+}
+
+.bx-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.bx-tab,
+.bx-tab-new {
+  -webkit-app-region: no-drag;
+}
+
+.bx-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 86px;
+  max-width: 168px;
+  padding: 0 6px 0 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.bx-tab:hover {
+  color: var(--ink-2);
+}
+
+.bx-tab.is-active {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--line-strong);
+  border-top: 2px solid var(--accent);
+}
+
+.bx-tab-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bx-tab-close {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.bx-tab-close:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.bx-tab-new {
+  flex: none;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.bx-tab-new:hover {
+  background: var(--bg-elevated);
+  color: var(--ink);
+}
+
+/* ---------- Barre d'outils ---------- */
 .bx-toolbar {
   -webkit-app-region: drag;
   flex: none;
@@ -38,10 +144,8 @@ body.browser-body {
   min-width: 0;
 }
 
-/* Tous les éléments interactifs échappent à la zone de déplacement. */
 .bx-btn,
-.bx-url,
-.bx-opacity {
+.bx-url {
   -webkit-app-region: no-drag;
 }
 
@@ -73,11 +177,16 @@ body.browser-body {
   cursor: default;
 }
 
-/* Bouton « épinglé » actif : accentué. */
-.bx-pin.is-on {
-  color: var(--accent-on);
-  background: var(--accent);
-  border-color: var(--accent);
+/* Rotation du bouton recharger pendant le chargement de la page active. */
+.bx-btn.is-loading {
+  animation: bx-spin 0.8s linear infinite;
+  color: var(--accent);
+}
+
+@keyframes bx-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bx-close:hover:not(:disabled) {
@@ -103,27 +212,17 @@ body.browser-body {
   border-color: var(--accent);
 }
 
-.bx-opacity {
-  -webkit-appearance: none;
-  width: 64px;
-  height: 4px;
-  border-radius: 99px;
-  background: var(--line-strong);
-  cursor: pointer;
-}
-
-.bx-opacity::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 99px;
-  background: var(--accent);
-  border: none;
+/* ---------- Conteneur des webviews ---------- */
+.bx-views {
+  position: relative;
+  flex: 1 1 auto;
+  background: #fff;
 }
 
 .bx-view {
-  flex: 1 1 auto;
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
   border: none;
-  background: #fff;
 }

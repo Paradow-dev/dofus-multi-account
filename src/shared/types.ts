@@ -37,14 +37,12 @@ export interface OverlayConfig {
 export interface BrowserConfig {
   /** Affiche (ou non) la fenêtre du mini-navigateur. */
   enabled: boolean
-  /** Maintient (ou non) la fenêtre au-dessus de toutes les autres. */
-  alwaysOnTop: boolean
-  /** Opacité de la fenêtre (0.3 → 1). */
+  /** Opacité de la fenêtre (0.3 → 1), réglée depuis la page « Navigateur ». */
   opacity: number
   /** Page d'accueil ouverte par défaut et via le bouton « Accueil ». */
   homeUrl: string
-  /** Dernière URL visitée (restaurée à la réouverture). */
-  lastUrl?: string
+  /** URLs des onglets ouverts (restaurés à la réouverture). */
+  tabs?: string[]
   /** Géométrie persistée de la fenêtre (px écran). Absente = centrée. */
   x?: number
   y?: number
@@ -137,12 +135,8 @@ export const IPC = {
   browserClose: 'browser:close',
   /** navigateur → main : lit la configuration courante du navigateur. */
   browserConfigGet: 'browser:config-get',
-  /** navigateur → main : bascule l'épinglage (always-on-top). */
-  browserSetAlwaysOnTop: 'browser:set-always-on-top',
-  /** navigateur → main : règle l'opacité de la fenêtre. */
-  browserSetOpacity: 'browser:set-opacity',
-  /** navigateur → main : mémorise la dernière URL visitée. */
-  browserPersistUrl: 'browser:persist-url',
+  /** navigateur → main : mémorise les URLs des onglets ouverts. */
+  browserPersistTabs: 'browser:persist-tabs',
   /** main → fenêtres : nouvel état de configuration du navigateur (réglages). */
   browserState: 'browser:state'
 } as const
@@ -159,7 +153,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   overlay: { enabled: false, opacity: 0.9 },
   browser: {
     enabled: false,
-    alwaysOnTop: true,
     opacity: 1,
     homeUrl: 'https://www.dofus.com/fr/mmorpg/encyclopedie/quetes'
   }
@@ -193,12 +186,8 @@ export interface RendererApi {
   closeBrowser(): Promise<void>
   /** (Fenêtre navigateur) Lit la configuration courante du navigateur. */
   getBrowserConfig(): Promise<BrowserConfig>
-  /** Épingle/désépingle le navigateur (always-on-top). Retourne le nouvel état. */
-  setBrowserAlwaysOnTop(value: boolean): Promise<boolean>
-  /** Règle l'opacité de la fenêtre du navigateur (0.3 → 1). */
-  setBrowserOpacity(value: number): void
-  /** (Fenêtre navigateur) Mémorise la dernière URL visitée. */
-  persistBrowserUrl(url: string): void
+  /** (Fenêtre navigateur) Mémorise les URLs des onglets ouverts. */
+  persistBrowserTabs(urls: string[]): void
   /** S'abonne aux changements de réglages du navigateur. Retourne une fonction de désabonnement. */
   onBrowserState(cb: (config: BrowserConfig) => void): () => void
 }

@@ -101,10 +101,10 @@ export function persistBrowserBounds(x: number, y: number, width: number, height
   })
 }
 
-/** Mémorise la dernière URL visitée (opération légère, sans notification). */
-export function persistBrowserUrl(url: string): void {
+/** Mémorise les URLs des onglets ouverts (opération légère, sans notification). */
+export function persistBrowserTabs(urls: string[]): void {
   currentConfig = saveConfig({
     ...currentConfig,
-    browser: { ...currentConfig.browser, lastUrl: url }
+    browser: { ...currentConfig.browser, tabs: urls }
   })
 }

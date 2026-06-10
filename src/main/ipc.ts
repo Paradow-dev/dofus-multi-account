@@ -6,12 +6,11 @@ import {
   applyConfig,
   getConfig,
   setBrowserEnabled,
-  updateBrowserConfig,
-  persistBrowserUrl
+  persistBrowserTabs
 } from './state'
 import { checkForUpdates, quitAndInstall } from './updater'
 import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
-import { focusBrowser, applyBrowserAlwaysOnTop, applyBrowserOpacity } from './browser'
+import { focusBrowser } from './browser'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -45,14 +44,5 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.browserOpen, () => focusBrowser())
   ipcMain.handle(IPC.browserClose, () => setBrowserEnabled(false))
   ipcMain.handle(IPC.browserConfigGet, () => getConfig().browser)
-  ipcMain.handle(IPC.browserSetAlwaysOnTop, (_e, value: boolean) => {
-    applyBrowserAlwaysOnTop(value)
-    updateBrowserConfig({ alwaysOnTop: value })
-    return value
-  })
-  ipcMain.on(IPC.browserSetOpacity, (_e, value: number) => {
-    applyBrowserOpacity(value)
-    updateBrowserConfig({ opacity: value })
-  })
-  ipcMain.on(IPC.browserPersistUrl, (_e, url: string) => persistBrowserUrl(url))
+  ipcMain.on(IPC.browserPersistTabs, (_e, urls: string[]) => persistBrowserTabs(urls))
 }

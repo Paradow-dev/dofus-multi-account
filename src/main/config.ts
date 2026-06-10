@@ -24,10 +24,9 @@ const overlaySchema = z
 const browserSchema = z
   .object({
     enabled: z.boolean().default(false),
-    alwaysOnTop: z.boolean().default(true),
     opacity: z.number().min(0.3).max(1).default(1),
     homeUrl: z.string().default(DEFAULT_CONFIG.browser.homeUrl),
-    lastUrl: z.string().optional(),
+    tabs: z.array(z.string()).optional(),
     x: z.number().optional(),
     y: z.number().optional(),
     width: z.number().optional(),

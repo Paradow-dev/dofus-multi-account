@@ -10,6 +10,10 @@
     <title>Navigateur</title>
   </head>
   <body class="browser-body">
+    <div class="bx-tabs" id="tabs">
+      <button class="bx-tab-new" id="newtab" title="Nouvel onglet">+</button>
+    </div>
+
     <header class="bx-toolbar" id="toolbar">
       <div class="bx-nav">
         <button class="bx-btn" id="back" title="Précédent" disabled>‹</button>
@@ -29,22 +33,11 @@
       </div>
 
       <div class="bx-tools">
-        <button class="bx-btn bx-pin" id="pin" title="Toujours au premier plan">📌</button>
-        <input
-          id="opacity"
-          class="bx-opacity"
-          type="range"
-          min="0.3"
-          max="1"
-          step="0.05"
-          value="1"
-          title="Opacité de la fenêtre"
-        />
-        <button class="bx-btn bx-close" id="close" title="Fermer">✕</button>
+        <button class="bx-btn bx-close" id="close" title="Fermer le navigateur">✕</button>
       </div>
     </header>
 
-    <webview id="view" class="bx-view" allowpopups></webview>
+    <div class="bx-views" id="views"></div>
 
     <script type="module" src="./browser.ts"></script>
   </body>
