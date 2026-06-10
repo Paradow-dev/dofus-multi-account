@@ -6,6 +6,7 @@ import type {
   ShortcutRegistration
 } from '@shared/types'
 import { focusAccount, applyGridLayout } from './windowManager'
+import { setActiveCharacter } from './overlay'
 import {
   isMouseAccelerator,
   parseMouseAccelerator,
@@ -27,6 +28,8 @@ function focusWithLayout(config: AppConfig, account: AccountConfig): boolean {
     applyGridLayout(config.accounts)
     focusAccount(account, 'none') // re-met le compte choisi au premier plan
   }
+  // Met à jour l'overlay avec le personnage qui vient d'être activé.
+  if (ok) setActiveCharacter(account.label)
   return ok
 }
 

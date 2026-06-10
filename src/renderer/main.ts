@@ -39,7 +39,8 @@ const state: State = {
     cyclePrev: '',
     layoutMode: 'maximize-active',
     enabled: true,
-    turnFollow: false
+    turnFollow: false,
+    overlay: { enabled: false, opacity: 0.9 }
   },
   windows: [],
   registrations: [],
@@ -130,6 +131,7 @@ function render(): void {
   main.append(renderAccounts())
   main.append(renderCycle())
   main.append(renderLayout())
+  main.append(renderOverlay())
   main.append(renderCombat())
   main.append(renderDetected())
   root.append(main)
@@ -383,6 +385,52 @@ function renderLayout(): HTMLElement {
     field('Au changement de compte', h('div', { class: 'select-wrap' }, [select, caret()]))
   ])
   return sectionEl('disposition', 'Disposition des fenêtres', grid)
+}
+
+function renderOverlay(): HTMLElement {
+  const ov = state.config.overlay
+
+  const toggle = renderSwitch('Afficher l’overlay', ov.enabled, (v) => {
+    ov.enabled = v
+    void save() // prend effet immédiatement (crée/détruit la fenêtre)
+  })
+
+  // Curseur d'opacité : aperçu live via le libellé, application à la fin du drag.
+  const pct = (o: number): string => `${Math.round(o * 100)}%`
+  const valueLabel = h('span', { class: 'upd-pct', text: pct(ov.opacity) })
+  const slider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0.2', max: '1', step: '0.05', value: String(ov.opacity) },
+    on: {
+      input: (e) => {
+        valueLabel.textContent = pct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        ov.opacity = Number((e.target as HTMLInputElement).value)
+        void save()
+      }
+    }
+  }) as HTMLInputElement
+  slider.disabled = !ov.enabled
+
+  const opacityRow = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Opacité' }),
+    h('div', { class: 'range-row' }, [slider, valueLabel])
+  ])
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Une étiquette <strong>toujours au premier plan</strong> affiche le nom du personnage actif. ' +
+          'Glissez-la pour la repositionner&nbsp;: sa place est mémorisée. ' +
+          'Le nom se met à jour à chaque changement de compte (raccourci, cycle ou suivi de tour).'
+      })
+    ])
+  ])
+
+  return sectionEl('overlay', 'Overlay du personnage', h('div', { class: 'combat-row' }, [toggle]), opacityRow, note)
 }
 
 function renderCombat(): HTMLElement {

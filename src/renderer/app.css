@@ -101,6 +101,23 @@
   margin-bottom: 14px;
 }
 
+/* Curseur d'opacité de l'overlay */
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.range {
+  flex: 1;
+  max-width: 320px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.range:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Indicateur de mise à jour dans l'en-tête */
 .upd-note {
   font-family: var(--font-mono);

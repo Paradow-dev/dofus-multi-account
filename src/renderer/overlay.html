@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+    />
+    <title>Overlay</title>
+  </head>
+  <body class="overlay-body">
+    <div id="overlay" class="overlay-card" title="Glisser pour déplacer">
+      <span class="overlay-dot"></span>
+      <span class="overlay-name" id="name">—</span>
+    </div>
+    <script type="module" src="./overlay.ts"></script>
+  </body>
+</html>

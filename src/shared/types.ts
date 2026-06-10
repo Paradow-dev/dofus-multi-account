@@ -19,6 +19,17 @@ export interface AccountConfig {
   shortcut?: string
 }
 
+/** Overlay flottant affichant le nom du personnage actif. */
+export interface OverlayConfig {
+  /** Affiche (ou non) l'overlay always-on-top. */
+  enabled: boolean
+  /** Opacité de la fenêtre d'overlay (0.2 → 1). */
+  opacity: number
+  /** Position persistée du coin haut-gauche (px écran). Absent = centré en haut. */
+  x?: number
+  y?: number
+}
+
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
   accounts: AccountConfig[]
@@ -32,6 +43,8 @@ export interface AppConfig {
   enabled: boolean
   /** Suivi de tour auto : bascule vers la fenêtre qui flashe (tour de jeu). */
   turnFollow: boolean
+  /** Overlay du nom de personnage. */
+  overlay: OverlayConfig
 }
 
 /** Une fenêtre détectée à l'exécution. */
@@ -86,7 +99,9 @@ export const IPC = {
   shortcutsState: 'shortcuts:state',
   updateState: 'update:state',
   updateCheck: 'update:check',
-  updateInstall: 'update:install'
+  updateInstall: 'update:install',
+  /** main → overlay : nom du personnage actif à afficher. */
+  overlayCharacter: 'overlay:character'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -97,7 +112,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   cyclePrev: 'Ctrl+Alt+Left',
   layoutMode: 'maximize-active',
   enabled: true,
-  turnFollow: false
+  turnFollow: false,
+  overlay: { enabled: false, opacity: 0.9 }
 }
 
 /** API exposée au renderer via contextBridge (window.api). */
@@ -114,4 +130,6 @@ export interface RendererApi {
   installUpdate(): Promise<void>
   /** S'abonne aux changements d'état de mise à jour. Retourne une fonction de désabonnement. */
   onUpdateState(cb: (state: UpdateState) => void): () => void
+  /** (Fenêtre overlay) S'abonne au nom du personnage actif. Retourne une fonction de désabonnement. */
+  onOverlayCharacter(cb: (name: string) => void): () => void
 }
