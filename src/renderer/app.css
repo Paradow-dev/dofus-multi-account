@@ -119,6 +119,13 @@
 .sidebar {
   min-width: 0;
 }
+/* Sépare les groupes de navigation (la nav empile label + liens sans wrapper). */
+.toc-label {
+  margin-top: 24px;
+}
+.toc-label:first-child {
+  margin-top: 0;
+}
 .toc-link {
   display: flex;
   align-items: center;

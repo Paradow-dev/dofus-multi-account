@@ -101,6 +101,30 @@ function createWindow(): void {
       }
       return { action: 'deny' }
     })
+
+    // Zoom de la page quand la webview a le focus (raccourcis Ctrl +/-/0 et
+    // Ctrl+molette) : appliqué ici puis synchronisé vers la barre d'outils.
+    const applyZoom = (factor: number): void => {
+      const f = Math.min(3, Math.max(0.3, Math.round(factor * 10) / 10))
+      contents.setZoomFactor(f)
+      win?.webContents.send(IPC.browserZoomSync, { wcId: contents.id, factor: f })
+    }
+    contents.on('before-input-event', (e, input) => {
+      if (input.type !== 'keyDown' || !input.control || input.alt || input.meta) return
+      if (input.key === '+' || input.key === '=') {
+        e.preventDefault()
+        applyZoom(contents.getZoomFactor() + 0.1)
+      } else if (input.key === '-') {
+        e.preventDefault()
+        applyZoom(contents.getZoomFactor() - 0.1)
+      } else if (input.key === '0') {
+        e.preventDefault()
+        applyZoom(1)
+      }
+    })
+    contents.on('zoom-changed', (_e, dir) => {
+      applyZoom(contents.getZoomFactor() + (dir === 'in' ? 0.1 : -0.1))
+    })
   })
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']

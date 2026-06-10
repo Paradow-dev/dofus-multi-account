@@ -140,7 +140,9 @@ export const IPC = {
   /** main → fenêtres : nouvel état de configuration du navigateur (réglages). */
   browserState: 'browser:state',
   /** main → navigateur : ouvrir un nouvel onglet (lien ouvrant une nouvelle fenêtre). */
-  browserOpenTab: 'browser:open-tab'
+  browserOpenTab: 'browser:open-tab',
+  /** main → navigateur : zoom appliqué à une webview (raccourci clavier / molette). */
+  browserZoomSync: 'browser:zoom-sync'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -194,4 +196,6 @@ export interface RendererApi {
   onBrowserState(cb: (config: BrowserConfig) => void): () => void
   /** (Fenêtre navigateur) S'abonne aux demandes d'ouverture d'onglet (clic sur un lien). */
   onBrowserOpenTab(cb: (tab: { url: string; active: boolean }) => void): () => void
+  /** (Fenêtre navigateur) S'abonne au zoom appliqué côté main (raccourci / molette). */
+  onBrowserZoom(cb: (z: { wcId: number; factor: number }) => void): () => void
 }

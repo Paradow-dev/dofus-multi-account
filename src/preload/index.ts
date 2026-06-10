@@ -50,6 +50,11 @@ const api: RendererApi = {
     const listener = (_e: unknown, tab: { url: string; active: boolean }): void => cb(tab)
     ipcRenderer.on(IPC.browserOpenTab, listener)
     return () => ipcRenderer.removeListener(IPC.browserOpenTab, listener)
+  },
+  onBrowserZoom: (cb: (z: { wcId: number; factor: number }) => void) => {
+    const listener = (_e: unknown, z: { wcId: number; factor: number }): void => cb(z)
+    ipcRenderer.on(IPC.browserZoomSync, listener)
+    return () => ipcRenderer.removeListener(IPC.browserZoomSync, listener)
   }
 }
 
