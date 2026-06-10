@@ -138,7 +138,9 @@ export const IPC = {
   /** navigateur → main : mémorise les URLs des onglets ouverts. */
   browserPersistTabs: 'browser:persist-tabs',
   /** main → fenêtres : nouvel état de configuration du navigateur (réglages). */
-  browserState: 'browser:state'
+  browserState: 'browser:state',
+  /** main → navigateur : ouvrir un nouvel onglet (lien ouvrant une nouvelle fenêtre). */
+  browserOpenTab: 'browser:open-tab'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -190,4 +192,6 @@ export interface RendererApi {
   persistBrowserTabs(urls: string[]): void
   /** S'abonne aux changements de réglages du navigateur. Retourne une fonction de désabonnement. */
   onBrowserState(cb: (config: BrowserConfig) => void): () => void
+  /** (Fenêtre navigateur) S'abonne aux demandes d'ouverture d'onglet (clic sur un lien). */
+  onBrowserOpenTab(cb: (tab: { url: string; active: boolean }) => void): () => void
 }

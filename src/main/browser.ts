@@ -1,5 +1,6 @@
 import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'node:path'
+import { IPC } from '@shared/types'
 import { getConfig, persistBrowserBounds, setBrowserEnabled } from './state'
 
 /**
@@ -84,12 +85,20 @@ function createWindow(): void {
     win = null
   })
 
-  // Les popups du site (target=_blank, window.open) restent dans la webview
-  // plutôt que d'ouvrir une nouvelle fenêtre Electron incontrôlée.
+  // Les liens ouvrant une nouvelle fenêtre (target=_blank, window.open,
+  // Ctrl/clic-milieu) ouvrent un nouvel onglet dans le navigateur. Les liens
+  // non-http (mailto:, etc.) partent vers le navigateur système.
   win.webContents.on('did-attach-webview', (_e, contents) => {
-    contents.setWindowOpenHandler(({ url }) => {
-      if (/^https?:/i.test(url)) void contents.loadURL(url)
-      else void shell.openExternal(url)
+    contents.setWindowOpenHandler(({ url, disposition }) => {
+      if (/^https?:/i.test(url)) {
+        // disposition 'background-tab' = Ctrl/clic-milieu → onglet en arrière-plan.
+        win?.webContents.send(IPC.browserOpenTab, {
+          url,
+          active: disposition !== 'background-tab'
+        })
+      } else {
+        void shell.openExternal(url)
+      }
       return { action: 'deny' }
     })
   })

@@ -98,7 +98,16 @@
 }
 
 .combat-row {
-  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Rythme vertical entre les contrôles successifs d'une page de réglages. */
+.page-sec > .field {
+  margin-bottom: 20px;
 }
 
 /* Espace les encadrés d'information des contrôles qui les précèdent. */
@@ -291,4 +300,39 @@
 }
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* ----- Navigation responsive -----
+   Le design system masque la navigation (.toc) sous 1024px ; on la rétablit
+   sous forme de barre horizontale compacte au-dessus du contenu, pour qu'elle
+   reste toujours accessible sur petite fenêtre. */
+@media (max-width: 1024px) {
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .toc-label {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .toc-link {
+    width: auto;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    border-radius: var(--r-pill);
+  }
+  .toc-link.active {
+    border-color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .toc-foot {
+    display: none;
+  }
 }

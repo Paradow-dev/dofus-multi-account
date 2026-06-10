@@ -186,6 +186,10 @@ urlInput.addEventListener('keydown', (e) => {
 })
 urlInput.addEventListener('focus', () => urlInput.select())
 
+// Lien ouvrant une nouvelle fenêtre (target=_blank, window.open, Ctrl/clic-milieu)
+// → ouvre un nouvel onglet (en avant-plan, ou en arrière-plan pour Ctrl/clic-milieu).
+window.api.onBrowserOpenTab(({ url, active }) => createTab(url, active))
+
 /* ---------- Initialisation ---------- */
 
 async function init(): Promise<void> {

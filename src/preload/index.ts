@@ -45,6 +45,11 @@ const api: RendererApi = {
     const listener = (_e: unknown, config: BrowserConfig): void => cb(config)
     ipcRenderer.on(IPC.browserState, listener)
     return () => ipcRenderer.removeListener(IPC.browserState, listener)
+  },
+  onBrowserOpenTab: (cb: (tab: { url: string; active: boolean }) => void) => {
+    const listener = (_e: unknown, tab: { url: string; active: boolean }): void => cb(tab)
+    ipcRenderer.on(IPC.browserOpenTab, listener)
+    return () => ipcRenderer.removeListener(IPC.browserOpenTab, listener)
   }
 }
 
