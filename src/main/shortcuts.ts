@@ -9,6 +9,7 @@ import { focusAccount, applyGridLayout } from './windowManager'
 import { setActiveCharacter } from './overlay'
 import { setActiveAccount } from './accountBar'
 import { getConfig, applyConfig } from './state'
+import { toggleCombat } from './combatState'
 import {
   isMouseAccelerator,
   parseMouseAccelerator,
@@ -143,6 +144,9 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
       const c = getConfig()
       applyConfig({ ...c, accountBar: { ...c.accountBar, enabled: !c.accountBar.enabled } })
     })
+  })
+  tryRegister(config.combatToggle ?? '', 'Mode combat', () => {
+    setImmediate(() => toggleCombat())
   })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.

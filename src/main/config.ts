@@ -47,6 +47,13 @@ const browserSchema = z
   })
   .default(DEFAULT_CONFIG.browser)
 
+const combatSchema = z
+  .object({
+    endTurnKey: z.string().default('F1'),
+    switchDelay: z.number().min(0).max(2000).default(150)
+  })
+  .default(DEFAULT_CONFIG.combat)
+
 const configSchema = z.object({
   accounts: z.array(accountSchema),
   cycleNext: z.string(),
@@ -54,11 +61,13 @@ const configSchema = z.object({
   overlayToggle: z.string().optional(),
   browserToggle: z.string().optional(),
   accountBarToggle: z.string().optional(),
+  combatToggle: z.string().optional(),
   layoutMode: layoutModeSchema,
   enabled: z.boolean(),
   overlay: overlaySchema,
   accountBar: accountBarSchema,
-  browser: browserSchema
+  browser: browserSchema,
+  combat: combatSchema
 })
 
 const store = new Store<{ config: AppConfig }>({

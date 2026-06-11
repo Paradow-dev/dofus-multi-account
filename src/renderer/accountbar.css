@@ -134,3 +134,43 @@ body.ab-body {
   color: var(--ink-3);
   padding: 4px 8px;
 }
+
+/* Bouton mode combat */
+.ab-combat {
+  -webkit-app-region: no-drag;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+
+.ab-combat:hover {
+  color: var(--ink-2);
+  border-color: var(--line-strong);
+}
+
+.ab-combat svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ab-combat.is-combat {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ab-combat.is-combat:hover {
+  opacity: 0.8;
+}

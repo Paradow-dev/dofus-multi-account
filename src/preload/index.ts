@@ -67,7 +67,13 @@ const api: RendererApi = {
   },
   resizeAccountBar: (width: number, height: number) =>
     ipcRenderer.send(IPC.accountBarResize, width, height),
-  resetAccountBarPosition: () => ipcRenderer.invoke(IPC.accountBarResetPosition)
+  resetAccountBarPosition: () => ipcRenderer.invoke(IPC.accountBarResetPosition),
+  toggleCombat: () => ipcRenderer.send(IPC.accountBarCombatToggle),
+  onCombatState: (cb: (inCombat: boolean) => void) => {
+    const listener = (_e: unknown, inCombat: boolean): void => cb(inCombat)
+    ipcRenderer.on(IPC.accountBarCombatState, listener)
+    return () => ipcRenderer.removeListener(IPC.accountBarCombatState, listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

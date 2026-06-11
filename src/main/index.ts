@@ -8,6 +8,7 @@ import { initUpdater } from './updater'
 import { destroyOverlay } from './overlay'
 import { destroyAccountBar } from './accountBar'
 import { destroyBrowser } from './browser'
+import { initKeyboardHook, stopKeyboardHook } from './keyboardHook'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -66,6 +67,7 @@ app.whenReady().then(() => {
   bootstrapShortcuts()
   createWindow()
   createTray(() => mainWindow)
+  initKeyboardHook()
   // Mise à jour auto (no-op en dev) ; rafraîchit le menu du tray à chaque état.
   initUpdater(() => rebuildMenu(() => mainWindow))
 
@@ -80,6 +82,7 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   unregisterAll()
+  stopKeyboardHook()
   destroyOverlay()
   destroyAccountBar()
   destroyBrowser()

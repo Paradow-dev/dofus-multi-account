@@ -13,6 +13,20 @@
     <div id="bar" class="ab-bar" title="Glisser pour déplacer">
       <span class="ab-grip" aria-hidden="true"></span>
       <div id="chips" class="ab-chips"></div>
+      <button id="combat-btn" class="ab-combat" title="Activer le mode combat" aria-label="Mode combat">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Épée 1 : pointe NW → pommeau SE -->
+          <polygon points="3,3 16.2,13.8 13.8,16.2" fill="currentColor"/>
+          <line x1="11.5" y1="18.5" x2="18.5" y2="11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="15" y1="15" x2="19.5" y2="19.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="21" cy="21" r="2" fill="currentColor"/>
+          <!-- Épée 2 : pointe NE → pommeau SW -->
+          <polygon points="21,3 10.2,16.2 7.8,13.8" fill="currentColor"/>
+          <line x1="5.5" y1="11.5" x2="12.5" y2="18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="15" x2="4.5" y2="19.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="3" cy="21" r="2" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
     <script type="module" src="./accountbar.ts"></script>
   </body>

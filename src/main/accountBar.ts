@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { IPC, type AccountBarItem } from '@shared/types'
 import { getConfig, updateAccountBarPosition, clearAccountBarPosition } from './state'
 import { listWindows } from './windowManager'
+import { updateDofusHandles } from './keyboardHook'
 
 /**
  * Overlay « barre de comptes » : fenêtre sans cadre, transparente, always-on-top,
@@ -90,10 +91,10 @@ function pushData(): void {
   if (!win) return
   const cfg = getConfig()
   // Réconciliation courante : quels comptes ont une fenêtre détectée.
+  const dofusWins = listWindows(cfg.accounts, false)
+  updateDofusHandles(new Set(dofusWins.map((w) => w.handle)))
   const detected = new Set(
-    listWindows(cfg.accounts, false)
-      .map((w) => w.accountId)
-      .filter((id): id is string => !!id)
+    dofusWins.map((w) => w.accountId).filter((id): id is string => !!id)
   )
   const items: AccountBarItem[] = [...cfg.accounts]
     .sort((a, b) => a.order - b.order)

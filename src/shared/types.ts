@@ -86,6 +86,14 @@ export interface BrowserConfig {
   height?: number
 }
 
+/** Configuration du mode combat (fin de tour automatique). */
+export interface CombatConfig {
+  /** Touche de fin de tour transmise à Dofus (défaut : F1). Format accélérateur Electron. */
+  endTurnKey: string
+  /** Délai (ms) entre la touche fin de tour et le switch de compte (défaut : 150). */
+  switchDelay: number
+}
+
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
   accounts: AccountConfig[]
@@ -99,6 +107,8 @@ export interface AppConfig {
   browserToggle?: string
   /** Accélérateur pour afficher/masquer la barre de comptes. */
   accountBarToggle?: string
+  /** Accélérateur pour basculer le mode combat. */
+  combatToggle?: string
   /** Disposition appliquée lors d'un changement de compte. */
   layoutMode: LayoutMode
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
@@ -109,6 +119,8 @@ export interface AppConfig {
   accountBar: AccountBarConfig
   /** Mini-navigateur en overlay (guides de quêtes). */
   browser: BrowserConfig
+  /** Mode combat : fin de tour automatique. */
+  combat: CombatConfig
 }
 
 /** Une fenêtre détectée à l'exécution. */
@@ -192,7 +204,11 @@ export const IPC = {
   /** barre de comptes → main : taille souhaitée (px) pour adapter la fenêtre. */
   accountBarResize: 'accountbar:resize',
   /** renderer → main : réinitialise la position de la barre de comptes. */
-  accountBarResetPosition: 'accountbar:reset-position'
+  accountBarResetPosition: 'accountbar:reset-position',
+  /** barre de comptes → main : bascule le mode combat. */
+  accountBarCombatToggle: 'accountbar:combat-toggle',
+  /** main → toutes les fenêtres : état courant du mode combat. */
+  accountBarCombatState: 'accountbar:combat-state'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -209,7 +225,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     enabled: false,
     opacity: 1,
     homeUrl: 'https://www.google.com'
-  }
+  },
+  combat: { endTurnKey: 'F1', switchDelay: 150 }
 }
 
 /** API exposée au renderer via contextBridge (window.api). */
@@ -256,4 +273,8 @@ export interface RendererApi {
   resizeAccountBar(width: number, height: number): void
   /** Réinitialise la position de la barre de comptes (re-centre en haut). */
   resetAccountBarPosition(): Promise<void>
+  /** Bascule le mode combat (main process). */
+  toggleCombat(): void
+  /** S'abonne aux changements d'état du mode combat. */
+  onCombatState(cb: (inCombat: boolean) => void): () => void
 }
