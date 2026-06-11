@@ -4,6 +4,7 @@ import '@ds/tokens/tokens.css'
 import './accountbar.css'
 import type { AccountBarItem } from '@shared/types'
 import { classGlyphInner } from './classGlyphs'
+import { classIconUrl } from './classIcons'
 
 const barEl = document.getElementById('bar') as HTMLElement
 const chipsEl = document.getElementById('chips') as HTMLElement
@@ -13,10 +14,19 @@ const BODY_PAD = 16
 const NS = 'http://www.w3.org/2000/svg'
 
 /**
- * Jeton SVG : disque + emblème de la classe (silhouette si aucune classe).
- * La couleur suit `currentColor` (déterminée par l'état du chip via CSS).
+ * Jeton (avatar) d'une classe. Si l'icône officielle bundlée existe, on l'affiche
+ * dans un disque (anneau en `currentColor` selon l'état du chip). Sinon, repli
+ * sur le jeton SVG monochrome : disque + emblème en `currentColor`.
  */
-function tokenSvg(classId?: string): SVGElement {
+function token(classId?: string): Element {
+  const iconUrl = classIconUrl(classId)
+  if (iconUrl) {
+    const img = document.createElement('img')
+    img.className = 'ab-token ab-token--img'
+    img.src = iconUrl
+    img.alt = ''
+    return img
+  }
   const svg = document.createElementNS(NS, 'svg')
   svg.setAttribute('class', 'ab-token')
   svg.setAttribute('viewBox', '0 0 24 24')
@@ -48,7 +58,7 @@ function buildChip(it: AccountBarItem): HTMLButtonElement {
   const name = document.createElement('span')
   name.className = 'ab-name'
   name.textContent = it.label
-  chip.append(tokenSvg(it.class), name)
+  chip.append(token(it.class), name)
   chip.addEventListener('click', () => void window.api.focusAccount(it.id))
   applyState(chip, it)
   return chip
