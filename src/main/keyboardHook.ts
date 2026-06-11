@@ -1,19 +1,22 @@
 /**
- * Hook clavier bas-niveau (WH_KEYBOARD_LL) pour la détection de fin de tour en combat.
+ * Hook clavier bas-niveau (WH_KEYBOARD_LL) pour la détection de fin de tour en combat,
+ * et hook d'événements Windows (SetWinEventHook EVENT_SYSTEM_FLASH) pour détecter
+ * le clignotement d'une fenêtre Dofus dans la barre des tâches (= tour de ce compte).
  *
- * Observe la touche de fin de tour configurée (défaut F1) sans la consommer :
- * la touche passe normalement à Dofus, et l'outil switche vers le compte suivant
- * après le délai configuré.
+ * WH_KEYBOARD_LL : observe la touche de fin de tour configurée (défaut F1) sans la
+ * consommer. Si le mode combat est actif, bascule vers le compte suivant après le délai.
  *
- * N'agit que si le mode combat est actif (isInCombat()) ET qu'une fenêtre Dofus
- * connue est au premier plan.
+ * SetWinEventHook (WINEVENT_OUTOFCONTEXT) : déclenché quand une fenêtre Dofus connue
+ * clignote (tour disponible). Bascule vers ce compte si le mode combat est actif.
+ * Pas de restriction UIPI pour les hooks out-of-context.
  *
  * Même architecture que mouseHook.ts (koffi, WH_*_LL, pompe de messages).
  */
 
 import { isInCombat, notifyCombatActivity } from './combatState'
-import { cycle } from './shortcuts'
+import { cycle, activateAccount } from './shortcuts'
 import { getConfig } from './state'
+import type { DetectedWindow } from '@shared/types'
 
 /** Correspondance touche Electron → code virtuel Windows. */
 const VK_MAP: Record<string, number> = {
@@ -33,6 +36,10 @@ const VK_MAP: Record<string, number> = {
 const WH_KEYBOARD_LL = 13
 const WM_KEYDOWN = 0x0100
 const WM_SYSKEYDOWN = 0x0104
+const EVENT_SYSTEM_FLASH = 0x8005
+const WINEVENT_SKIPOWNPROCESS = 0x0002
+/** idObject = 0 = OBJID_WINDOW : c'est la fenêtre elle-même qui clignote. */
+const OBJID_WINDOW = 0
 
 type Fn = (...args: unknown[]) => unknown
 
@@ -43,21 +50,25 @@ let switchTimer: NodeJS.Timeout | null = null
 
 let hookProcCb: unknown = null
 let hookHandle: unknown = null
+let flashProcCb: unknown = null
+let flashEventHook: unknown = null
 
 let CallNextHookEx: Fn | null = null
 let UnhookWindowsHookEx: Fn | null = null
+let UnhookWinEvent: Fn | null = null
 let PeekMessageW: Fn | null = null
-let GetForegroundWindow: Fn | null = null
 
-/** Handles des fenêtres Dofus connues (mis à jour par accountBar). */
-let knownDofusHandles = new Set<number>()
+/**
+ * Fenêtres Dofus connues : handle → accountId (undefined si fenêtre non réconciliée).
+ * Mis à jour par accountBar toutes les 5 s.
+ */
+let knownDofusWindows = new Map<number, string | undefined>()
 
-export function updateDofusHandles(handles: Set<number>): void {
-  knownDofusHandles = handles
+export function updateDofusHandles(wins: DetectedWindow[]): void {
+  knownDofusWindows = new Map(wins.map((w) => [w.handle, w.accountId]))
 }
 
 function resolveVk(key: string): number | null {
-  // Extrait le dernier token d'un accélérateur (ex. "Ctrl+F1" → "F1").
   const token = key.split('+').pop() ?? key
   return VK_MAP[token] ?? null
 }
@@ -82,6 +93,7 @@ export function initKeyboardHook(): boolean {
     const user32 = koffi.load('user32.dll')
     const kernel32 = koffi.load('kernel32.dll')
 
+    // --- Keyboard hook (WH_KEYBOARD_LL) ---
     const HOOKPROC = koffi.proto(
       'intptr_t LowLevelKeyboardProc(int32 nCode, uintptr_t wParam, void* lParam)'
     )
@@ -96,12 +108,11 @@ export function initKeyboardHook(): boolean {
     PeekMessageW = user32.func(
       'bool PeekMessageW(void*, void*, uint32, uint32, uint32)'
     ) as unknown as Fn
-    GetForegroundWindow = user32.func('void* GetForegroundWindow()') as unknown as Fn
     const GetModuleHandleW = kernel32.func('void* GetModuleHandleW(void*)') as unknown as Fn
 
     const PM_REMOVE = 0x0001
 
-    const proc = (nCode: number, wParam: number, lParam: unknown): number => {
+    const keyProc = (nCode: number, wParam: number, lParam: unknown): number => {
       try {
         if (Number(nCode) >= 0) {
           const msg = Number(wParam)
@@ -112,20 +123,16 @@ export function initKeyboardHook(): boolean {
             const targetVk = resolveVk(cfg.combat?.endTurnKey ?? 'F1')
 
             if (targetVk !== null && vkCode === targetVk && isInCombat()) {
-              // Vérifie que la fenêtre au premier plan est une fenêtre Dofus connue.
-              const fgHwnd = Number(GetForegroundWindow!())
-              if (knownDofusHandles.size === 0 || knownDofusHandles.has(fgHwnd)) {
-                notifyCombatActivity()
-                const delay = cfg.combat?.switchDelay ?? 150
-                if (switchTimer) clearTimeout(switchTimer)
-                switchTimer = setTimeout(() => {
-                  try {
-                    cycle(getConfig(), 'next')
-                  } catch {
-                    /* ignore */
-                  }
-                }, delay)
-              }
+              notifyCombatActivity()
+              const delay = cfg.combat?.switchDelay ?? 150
+              if (switchTimer) clearTimeout(switchTimer)
+              switchTimer = setTimeout(() => {
+                try {
+                  cycle(getConfig(), 'next')
+                } catch {
+                  /* ignore */
+                }
+              }, delay)
             }
           }
         }
@@ -136,17 +143,67 @@ export function initKeyboardHook(): boolean {
       return Number(CallNextHookEx!(null, nCode, wParam, lParam))
     }
 
-    hookProcCb = koffi.register(proc, koffi.pointer(HOOKPROC))
+    hookProcCb = koffi.register(keyProc, koffi.pointer(HOOKPROC))
     const hInst = GetModuleHandleW(null)
     hookHandle = SetWindowsHookExW(WH_KEYBOARD_LL, hookProcCb, hInst, 0)
     if (!hookHandle) throw new Error('SetWindowsHookExW échoué')
 
+    // --- Flash event hook (SetWinEventHook EVENT_SYSTEM_FLASH) ---
+    // WINEVENT_OUTOFCONTEXT (0) : le callback est appelé dans notre thread via la
+    // pompe de messages — pas de restriction UIPI, fonctionne même si Dofus est
+    // lancé en administrateur.
+    const WINEVENTPROC = koffi.proto(
+      'void WinEventProc(void* hHook, uint32 event, void* hwnd, int32 idObject, int32 idChild, uint32 idEventThread, uint32 dwmsEventTime)'
+    )
+    const SetWinEventHook = user32.func(
+      'void* SetWinEventHook(uint32, uint32, void*, void*, uint32, uint32, uint32)'
+    ) as unknown as Fn
+    UnhookWinEvent = user32.func('bool UnhookWinEvent(void*)') as unknown as Fn
+
+    const flashProc = (
+      _hHook: unknown,
+      _event: unknown,
+      hwnd: unknown,
+      idObject: unknown
+    ): void => {
+      try {
+        if (Number(idObject) !== OBJID_WINDOW) return
+        const handle = Number(hwnd)
+        if (!knownDofusWindows.has(handle)) return
+        if (!isInCombat()) return
+        const accountId = knownDofusWindows.get(handle)
+        if (!accountId) return
+        setImmediate(() => {
+          try {
+            activateAccount(getConfig(), accountId)
+          } catch {
+            /* ignore */
+          }
+        })
+      } catch {
+        /* ignore */
+      }
+    }
+
+    flashProcCb = koffi.register(flashProc, koffi.pointer(WINEVENTPROC))
+    flashEventHook = SetWinEventHook(
+      EVENT_SYSTEM_FLASH, EVENT_SYSTEM_FLASH,
+      null, flashProcCb,
+      0, 0,
+      WINEVENT_SKIPOWNPROCESS // WINEVENT_OUTOFCONTEXT = 0 implicite
+    )
+    if (!flashEventHook) {
+      console.warn('[keyboardHook] SetWinEventHook (flash) échoué — détection du clignotement désactivée')
+    }
+
+    // Pompe de messages : requise pour WH_KEYBOARD_LL et pour les callbacks
+    // WINEVENT_OUTOFCONTEXT (tous deux livrés via la file de messages du thread).
     pumpTimer = setInterval(() => {
       try {
         const msg = Buffer.alloc(64)
         let guard = 0
         while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
-          /* draine la file — le hook est déclenché par le système pendant la récupération */
+          /* draine la file */
         }
       } catch {
         /* ignore */
@@ -154,7 +211,7 @@ export function initKeyboardHook(): boolean {
     }, 5)
 
     started = true
-    console.log('[keyboardHook] actif')
+    console.log('[keyboardHook] actif (clavier + flash)')
     return true
   } catch (err) {
     console.warn('[keyboardHook] initialisation échouée :', err)
@@ -177,6 +234,12 @@ export function stopKeyboardHook(): void {
   } catch {
     /* ignore */
   }
+  try {
+    if (flashEventHook && UnhookWinEvent) UnhookWinEvent(flashEventHook)
+  } catch {
+    /* ignore */
+  }
   hookHandle = null
+  flashEventHook = null
   started = false
 }

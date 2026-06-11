@@ -92,7 +92,7 @@ function pushData(): void {
   const cfg = getConfig()
   // Réconciliation courante : quels comptes ont une fenêtre détectée.
   const dofusWins = listWindows(cfg.accounts, false)
-  updateDofusHandles(new Set(dofusWins.map((w) => w.handle)))
+  updateDofusHandles(dofusWins)
   const detected = new Set(
     dofusWins.map((w) => w.accountId).filter((id): id is string => !!id)
   )
