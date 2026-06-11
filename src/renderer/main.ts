@@ -23,6 +23,7 @@ import type {
 import { h, clear } from './ui/dom'
 import { eventToAccelerator, eventToMouseAccelerator } from './ui/accelerator'
 import { CLASSES, classGlyphInner } from './classGlyphs'
+import { classIconUrl } from './classIcons'
 
 type PageId =
   | 'accounts'
@@ -479,8 +480,18 @@ function renderAccountRow(acc: AccountConfig, idx: number, total: number): HTMLE
   ])
 }
 
-/** Petit emblème SVG d'une classe (couleur accent si définie, sinon atténué). */
-function classEmblem(classId?: string): SVGElement {
+/**
+ * Petit emblème d'une classe : icône officielle bundlée si disponible, sinon
+ * repli sur l'emblème monochrome SVG (couleur accent si définie, sinon atténué).
+ */
+function classEmblem(classId?: string): HTMLElement | SVGElement {
+  const iconUrl = classIconUrl(classId)
+  if (iconUrl) {
+    return h('img', {
+      class: 'class-icon',
+      attrs: { src: iconUrl, alt: '', width: '20', height: '20' }
+    })
+  }
   const ns = 'http://www.w3.org/2000/svg'
   const svg = document.createElementNS(ns, 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')

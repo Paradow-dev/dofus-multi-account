@@ -97,6 +97,15 @@ body.ab-body {
   fill: currentColor;
 }
 
+/* Variante icône officielle : image ronde, anneau en currentColor selon l'état. */
+.ab-token--img {
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg);
+  border: 2.2px solid currentColor;
+  box-sizing: border-box;
+}
+
 .ab-name {
   font-family: var(--font-sans);
   font-weight: 600;

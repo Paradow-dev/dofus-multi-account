@@ -57,6 +57,14 @@
   gap: 10px;
 }
 
+/* Icône de classe officielle (sélecteur de compte). */
+.class-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
 /* Contrôle d'ordre (flèches) */
 .order-ctrl {
   display: flex;
