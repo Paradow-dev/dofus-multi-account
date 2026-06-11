@@ -30,6 +30,7 @@ type PageId =
   | 'layout'
   | 'overlay'
   | 'browser'
+  | 'combat'
   | 'windows'
   | 'about'
 
@@ -57,7 +58,8 @@ const state: State = {
       enabled: false,
       opacity: 1,
       homeUrl: 'https://www.google.com'
-    }
+    },
+    combat: { endTurnKey: 'F1', switchDelay: 150 }
   },
   windows: [],
   registrations: [],
@@ -152,7 +154,8 @@ const NAV: { group: string; items: { id: PageId; label: string; icon: string }[]
       { id: 'shortcuts', label: 'Raccourcis', icon: 'key' },
       { id: 'layout', label: 'Disposition', icon: 'grid' },
       { id: 'overlay', label: 'Overlays', icon: 'tag' },
-      { id: 'browser', label: 'Navigateur', icon: 'globe' }
+      { id: 'browser', label: 'Navigateur', icon: 'globe' },
+      { id: 'combat', label: 'Mode combat', icon: 'sword' }
     ]
   },
   {
@@ -170,6 +173,7 @@ const PAGES: Record<PageId, () => HTMLElement> = {
   layout: renderLayout,
   overlay: renderOverlays,
   browser: renderBrowser,
+  combat: renderCombat,
   windows: renderDetected,
   about: renderAbout
 }
@@ -351,7 +355,8 @@ const ICONS: Record<string, string[]> = {
   refresh: ['M21 12a9 9 0 1 1-3-6.7', 'M21 3v5h-5'],
   window: ['M3 4h18v16H3z', 'M3 9h18'],
   globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3a15 15 0 0 1 0 18', 'M12 3a15 15 0 0 0 0 18'],
-  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01']
+  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01'],
+  sword: ['M5 19L19 5', 'M8.5 9.5L14.5 15.5', 'M5 19 m0 0 a1.8 1.8 0 1 0 0.01 0']
 }
 
 function iconEl(name: string): SVGElement {
@@ -745,6 +750,70 @@ function renderBrowser(): HTMLElement {
     h('div', { class: 'combat-row' }, [toggle, openBtn]),
     homeRow,
     opacityRow,
+    note
+  )
+}
+
+function renderCombat(): HTMLElement {
+  const cm = state.config.combat ?? { endTurnKey: 'F1', switchDelay: 150 }
+
+  const toggleShortcut = field(
+    'Raccourci mode combat',
+    shortcutCapture(state.config.combatToggle ?? '', (a) => {
+      state.config.combatToggle = a || undefined
+      markDirty()
+    })
+  )
+
+  const endTurnShortcut = field(
+    'Touche fin de tour',
+    shortcutCapture(cm.endTurnKey, (a) => {
+      if (!a) return
+      state.config.combat = { ...cm, endTurnKey: a }
+      markDirty()
+    })
+  )
+
+  const delayPct = (v: number): string => `${v} ms`
+  const delayLabel = h('span', { class: 'upd-pct', text: delayPct(cm.switchDelay) })
+  const delaySlider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0', max: '500', step: '25', value: String(cm.switchDelay) },
+    on: {
+      input: (e) => {
+        delayLabel.textContent = delayPct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        state.config.combat = { ...cm, switchDelay: Number((e.target as HTMLInputElement).value) }
+        markDirty()
+      }
+    }
+  }) as HTMLInputElement
+  const delayRow = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Délai avant switch' }),
+    h('div', { class: 'range-row' }, [delaySlider, delayLabel])
+  ])
+
+  const grid = h('div', { class: 'input-grid' }, [toggleShortcut, endTurnShortcut])
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Activez le mode combat via le <strong>raccourci clavier</strong> ou le bouton <strong>⚔</strong> dans la barre de comptes. ' +
+          'Quand actif, appuyer sur la <strong>touche fin de tour</strong> (ex. F1) envoie la touche à Dofus ' +
+          '<em>puis</em> bascule automatiquement vers le compte suivant après le délai configuré. ' +
+          "Le mode combat se désactive seul après <strong>90 secondes</strong> d’inactivité."
+      })
+    ])
+  ])
+
+  return pageEl(
+    'Mode combat',
+    'Switch automatique de compte à chaque fin de tour.',
+    grid,
+    delayRow,
     note
   )
 }
