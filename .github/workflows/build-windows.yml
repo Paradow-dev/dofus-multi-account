@@ -34,6 +34,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Récupère les icônes de classe officielles (DofusDB) à intégrer au build.
+      # Non bloquant : en cas d'indisponibilité du CDN, l'app retombe sur les
+      # emblèmes monochromes de classGlyphs.ts plutôt que d'échouer la release.
+      - name: Fetch class icons
+        continue-on-error: true
+        run: npm run fetch:class-icons
+
       # Décide s'il faut publier une release. Vrai si :
       #  - push d'un tag vX.Y.Z, ou
       #  - dispatch manuel avec l'option « release », ou
