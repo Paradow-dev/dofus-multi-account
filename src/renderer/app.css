@@ -325,37 +325,79 @@
   background: transparent;
 }
 
-/* ----- Navigation responsive -----
+/* ----- Navigation responsive : menu burger -----
    Le design system masque la navigation (.toc) sous 1024px ; on la rétablit
-   sous forme de barre horizontale compacte au-dessus du contenu, pour qu'elle
-   reste toujours accessible sur petite fenêtre. */
+   en tiroir latéral (drawer) ouvert via le bouton burger de la topbar, plutôt
+   qu'en barre horizontale qui mangeait la hauteur du contenu. */
+
+/* Regroupe burger + marque à gauche de la topbar (qui est en space-between). */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Bouton burger : caché en desktop, visible sous 1024px. */
+.burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm, 6px);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.burger:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/* Voile sous le tiroir : clic = fermeture. */
+.menu-backdrop {
+  display: none;
+}
+
 @media (max-width: 1024px) {
-  .toc {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--line);
+  .burger {
+    display: inline-flex;
   }
-  .toc-label {
-    width: 100%;
-    margin-top: 4px;
+
+  /* Sidebar en tiroir latéral fixe, masquée hors écran par défaut. */
+  .sidebar {
+    position: fixed;
+    top: 61px; /* sous la topbar (sticky) */
+    left: 0;
+    bottom: 0;
+    z-index: 90;
+    width: 240px;
+    padding: 0 16px;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
   }
-  .toc-link {
-    width: auto;
-    margin: 0;
-    padding: 6px 12px;
-    border: 1px solid var(--line);
-    border-left: 1px solid var(--line);
-    border-radius: var(--r-pill);
+  .sidebar.open {
+    transform: translateX(0);
   }
-  .toc-link.active {
-    border-color: var(--accent);
-    border-left-color: var(--accent);
+
+  /* Le design system masque .toc sous 1024px : on la rétablit dans le tiroir. */
+  .sidebar .toc {
+    display: block;
+    position: static;
+    max-height: none;
+    padding: 20px 0;
   }
-  .toc-foot {
-    display: none;
+
+  .menu-backdrop {
+    display: block;
+    position: fixed;
+    inset: 61px 0 0 0;
+    z-index: 80;
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
   }
 }

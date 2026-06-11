@@ -44,6 +44,8 @@ interface State {
   dirty: boolean
   page: PageId
   version: string
+  /** Menu burger (navigation) ouvert — utile uniquement sur petite fenêtre. */
+  menuOpen: boolean
 }
 
 const state: State = {
@@ -68,7 +70,8 @@ const state: State = {
   showAllWindows: false,
   dirty: false,
   page: 'accounts',
-  version: ''
+  version: '',
+  menuOpen: false
 }
 
 const root = document.getElementById('app') as HTMLElement
@@ -181,6 +184,12 @@ const PAGES: Record<PageId, () => HTMLElement> = {
 
 function setPage(id: PageId): void {
   state.page = id
+  state.menuOpen = false
+  render()
+}
+
+function toggleMenu(): void {
+  state.menuOpen = !state.menuOpen
   render()
 }
 
@@ -197,7 +206,13 @@ function render(): void {
 
   content.append(PAGES[state.page]())
 
-  root.append(h('div', { class: 'layout' }, [renderSidebar(), content]))
+  const layout = h('div', { class: 'layout' }, [renderSidebar(), content])
+  if (state.menuOpen) {
+    layout.append(
+      h('div', { class: 'menu-backdrop', on: { click: () => toggleMenu() } })
+    )
+  }
+  root.append(layout)
 }
 
 function renderSidebar(): HTMLElement {
@@ -219,7 +234,7 @@ function renderSidebar(): HTMLElement {
       h('span', { class: 'toc-ver', text: state.version ? `v${state.version}` : '' })
     ])
   )
-  return h('aside', { class: 'sidebar' }, [nav])
+  return h('aside', { class: `sidebar${state.menuOpen ? ' open' : ''}` }, [nav])
 }
 
 /** En-tête de page : un seul titre (+ description courte facultative). */
@@ -232,6 +247,20 @@ function pageEl(title: string, desc: string, ...rest: (Node | null)[]): HTMLElem
 }
 
 function renderTopbar(): HTMLElement {
+  // Bouton burger : visible uniquement sur petite fenêtre (voir app.css),
+  // ouvre la navigation en tiroir latéral.
+  const burger = h('button', {
+    class: 'burger',
+    attrs: { 'aria-label': 'Menu', 'aria-expanded': String(state.menuOpen) },
+    on: { click: () => toggleMenu() }
+  })
+  burger.innerHTML =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+    (state.menuOpen
+      ? '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>'
+      : '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>') +
+    '</svg>'
+
   const brand = h('div', { class: 'brand' }, [
     h('img', { attrs: { src: markUrl, width: '26', height: '26', alt: 'Paradow' } }),
     h('span', { class: 'brand-name', text: 'paradow' }),
@@ -260,7 +289,10 @@ function renderTopbar(): HTMLElement {
   if (upd) meta.prepend(upd)
   if (state.version) meta.prepend(h('span', { class: 'ver-chip', text: `v${state.version}` }))
 
-  return h('header', { class: 'topbar' }, [brand, meta])
+  return h('header', { class: 'topbar' }, [
+    h('div', { class: 'topbar-left' }, [burger, brand]),
+    meta
+  ])
 }
 
 /**
@@ -801,14 +833,14 @@ function renderCombat(): HTMLElement {
       }
     }
   }) as HTMLInputElement
-  const delayRow = h('div', { class: 'field', style: 'margin-top: 28px' }, [
+  const delayRow = h('div', { class: 'field', attrs: { style: 'margin-top: 32px' } }, [
     h('span', { class: 'field-label', text: 'Délai avant switch' }),
     h('div', { class: 'range-row' }, [delaySlider, delayLabel])
   ])
 
-  const grid = h('div', { class: 'input-grid', style: 'margin-bottom: 12px' }, [toggleShortcut, endTurnShortcut])
+  const grid = h('div', { class: 'input-grid' }, [toggleShortcut, endTurnShortcut])
 
-  const note = h('div', { class: 'alert alert--info', style: 'margin-top: 32px' }, [
+  const note = h('div', { class: 'alert alert--info', attrs: { style: 'margin-top: 32px' } }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
