@@ -801,14 +801,14 @@ function renderCombat(): HTMLElement {
       }
     }
   }) as HTMLInputElement
-  const delayRow = h('div', { class: 'field' }, [
+  const delayRow = h('div', { class: 'field', style: 'margin-top: 28px' }, [
     h('span', { class: 'field-label', text: 'Délai avant switch' }),
     h('div', { class: 'range-row' }, [delaySlider, delayLabel])
   ])
 
-  const grid = h('div', { class: 'input-grid' }, [toggleShortcut, endTurnShortcut])
+  const grid = h('div', { class: 'input-grid', style: 'margin-bottom: 12px' }, [toggleShortcut, endTurnShortcut])
 
-  const note = h('div', { class: 'alert alert--info' }, [
+  const note = h('div', { class: 'alert alert--info', style: 'margin-top: 32px' }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
