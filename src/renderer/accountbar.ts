@@ -7,6 +7,7 @@ import { classGlyphInner } from './classGlyphs'
 
 const barEl = document.getElementById('bar') as HTMLElement
 const chipsEl = document.getElementById('chips') as HTMLElement
+const combatBtn = document.getElementById('combat-btn') as HTMLButtonElement
 
 // Padding de .ab-body (8px de chaque côté) à ajouter autour de la barre.
 const BODY_PAD = 16
@@ -96,6 +97,12 @@ function reportSize(): void {
 }
 
 window.api.onAccountBarData((items) => render(items))
+
+combatBtn.addEventListener('click', () => window.api.toggleCombat())
+window.api.onCombatState((inCombat) => {
+  combatBtn.classList.toggle('is-combat', inCombat)
+  combatBtn.title = inCombat ? 'Mode combat actif — cliquer pour désactiver' : 'Activer le mode combat'
+})
 
 // Premier ajustement après chargement des polices (qui changent la largeur).
 window.addEventListener('load', () => requestAnimationFrame(reportSize))

@@ -1,5 +1,6 @@
 import { app, ipcMain } from 'electron'
 import { IPC, type AppConfig, type CycleDirection, type Favorite } from '@shared/types'
+import { toggleCombat } from './combatState'
 import { listWindows } from './windowManager'
 import { activateAccount, cycle } from './shortcuts'
 import {
@@ -56,4 +57,6 @@ export function registerIpc(): void {
   ipcMain.on(IPC.browserPersistFavorites, (_e, favorites: Favorite[]) =>
     persistBrowserFavorites(favorites)
   )
+
+  ipcMain.on(IPC.accountBarCombatToggle, () => toggleCombat())
 }
