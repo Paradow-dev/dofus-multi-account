@@ -76,7 +76,8 @@ const api: RendererApi = {
     return () => ipcRenderer.removeListener(IPC.accountBarCombatState, listener)
   },
   pickCombatZone: () => ipcRenderer.invoke(IPC.combatZonePick),
-  sendZonePicked: (zone: CombatZone | null) => ipcRenderer.send(IPC.combatZonePicked, zone)
+  sendZonePicked: (zone: CombatZone | null) => ipcRenderer.send(IPC.combatZonePicked, zone),
+  previewCombatZone: () => ipcRenderer.invoke(IPC.combatZonePreview)
 }
 
 contextBridge.exposeInMainWorld('api', api)

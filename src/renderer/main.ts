@@ -884,6 +884,41 @@ function renderCombat(): HTMLElement {
     }
   })
 
+  // Aperçu de ce que « voit » la détection : capture courante de la zone +
+  // distance à la signature de référence (verdict combat / hors combat).
+  const previewImg = h('img', {
+    class: 'zone-preview-img',
+    attrs: { alt: 'Aperçu de la zone capturée' }
+  }) as HTMLImageElement
+  const previewVerdict = h('span', { class: 'upd-pct', text: '' })
+  const previewBox = h('div', { class: 'zone-preview', attrs: { style: 'display: none' } }, [
+    previewImg,
+    previewVerdict
+  ])
+
+  const refreshPreview = async (): Promise<void> => {
+    const p = await window.api.previewCombatZone()
+    if (!p) {
+      previewBox.style.display = 'none'
+      return
+    }
+    previewImg.src = p.image
+    previewVerdict.textContent = p.match
+      ? `Combat détecté — distance ${p.distance} (seuil ${p.threshold})`
+      : `Hors combat — distance ${p.distance} (seuil ${p.threshold})`
+    previewVerdict.classList.toggle('zone-match', p.match)
+    previewBox.style.display = 'flex'
+  }
+
+  const previewBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Aperçu de la zone',
+    title: 'Capture la zone maintenant et compare à la référence',
+    on: { click: () => void refreshPreview() }
+  }) as HTMLButtonElement
+  previewBtn.disabled = !cm.detectZone
+  if (cm.detectZone) void refreshPreview()
+
   const detectRow = h(
     'div',
     { class: 'field', attrs: { style: 'margin-top: 32px' } },
@@ -892,8 +927,10 @@ function renderCombat(): HTMLElement {
       h('div', { class: 'combat-row' }, [detectToggle]),
       h('div', { class: 'row-actions', attrs: { style: 'margin-top: 12px; display: flex; align-items: center; gap: 12px' } }, [
         pickBtn,
+        previewBtn,
         zoneStatus
-      ])
+      ]),
+      previewBox
     ]
   )
 

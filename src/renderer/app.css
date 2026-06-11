@@ -401,3 +401,25 @@
     background: color-mix(in srgb, var(--bg) 55%, transparent);
   }
 }
+
+/* ----- Aperçu de la zone de détection combat ----- */
+.zone-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elev, rgba(255, 255, 255, 0.03));
+}
+.zone-preview-img {
+  max-width: 280px;
+  max-height: 96px;
+  image-rendering: pixelated;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+}
+.zone-preview .zone-match {
+  color: var(--accent);
+}

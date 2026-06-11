@@ -228,7 +228,9 @@ export const IPC = {
   /** renderer → main : ouvre l'overlay de sélection de zone (détection combat). */
   combatZonePick: 'combat:zone-pick',
   /** fenêtre de sélection → main : zone choisie (ou null si annulé). */
-  combatZonePicked: 'combat:zone-picked'
+  combatZonePicked: 'combat:zone-picked',
+  /** renderer → main : capture la zone configurée (aperçu de la détection). */
+  combatZonePreview: 'combat:zone-preview'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -305,4 +307,22 @@ export interface RendererApi {
   pickCombatZone(): Promise<AppConfig | null>
   /** (Fenêtre de sélection) Renvoie la zone choisie au main (null = annulé). */
   sendZonePicked(zone: CombatZone | null): void
+  /**
+   * Capture la zone de détection configurée et retourne un aperçu :
+   * image (data URL PNG), distance à la signature de référence et verdict.
+   * null si aucune zone n'est définie ou si la capture échoue.
+   */
+  previewCombatZone(): Promise<CombatZonePreview | null>
+}
+
+/** Aperçu de la zone de détection (page Mode combat). */
+export interface CombatZonePreview {
+  /** Capture courante de la zone (data URL PNG). */
+  image: string
+  /** Distance moyenne (0-255) à la signature de référence. */
+  distance: number
+  /** Seuil en deçà duquel la zone est considérée « en combat ». */
+  threshold: number
+  /** true si la capture correspond à la référence (combat détecté). */
+  match: boolean
 }

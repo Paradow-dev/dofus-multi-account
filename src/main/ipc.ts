@@ -15,7 +15,7 @@ import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
 import { resizeAccountBarWindow, resetAccountBarPosition } from './accountBar'
 import { focusBrowser } from './browser'
 import { pickZone } from './zonePicker'
-import { calibrateZone } from './combatDetect'
+import { calibrateZone, previewZone } from './combatDetect'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -79,4 +79,7 @@ export function registerIpc(): void {
     })
     return config
   })
+
+  // Aperçu de la zone de détection (capture courante + distance à la référence).
+  ipcMain.handle(IPC.combatZonePreview, () => previewZone())
 }

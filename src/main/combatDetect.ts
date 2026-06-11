@@ -12,8 +12,8 @@
  * 3 échecs consécutifs pour sortir.
  */
 
-import { desktopCapturer, screen } from 'electron'
-import type { CombatZone } from '@shared/types'
+import { desktopCapturer, screen, type NativeImage } from 'electron'
+import type { CombatZone, CombatZonePreview } from '@shared/types'
 import { isInCombat, enterCombat, exitCombat } from './combatState'
 import { getConfig } from './state'
 
@@ -35,10 +35,10 @@ let missStreak = 0
 let enteredByDetect = false
 
 /**
- * Capture la zone d'écran demandée et retourne ses pixels RGBA (bitmap),
- * ou null si la capture échoue. Gère le facteur d'échelle de l'affichage.
+ * Capture la zone d'écran demandée et retourne l'image recadrée (taille
+ * native), ou null si la capture échoue. Gère le facteur d'échelle.
  */
-async function captureZone(zone: CombatZone): Promise<Buffer | null> {
+async function captureZoneImage(zone: CombatZone): Promise<NativeImage | null> {
   try {
     const display = screen.getDisplayMatching({
       x: zone.x,
@@ -58,18 +58,26 @@ async function captureZone(zone: CombatZone): Promise<Buffer | null> {
       sources.find((s) => s.display_id === String(display.id)) ?? sources[0]
     if (!source) return null
 
-    const crop = source.thumbnail.crop({
+    return source.thumbnail.crop({
       x: Math.round((zone.x - display.bounds.x) * scale),
       y: Math.round((zone.y - display.bounds.y) * scale),
       width: Math.round(zone.width * scale),
       height: Math.round(zone.height * scale)
     })
-    // Normalise la taille : la signature est indépendante de la résolution.
-    const small = crop.resize({ width: GRID * 4, height: GRID * 4 })
-    return small.toBitmap()
   } catch {
     return null
   }
+}
+
+/**
+ * Capture la zone et retourne ses pixels BGRA normalisés (32×32) pour la
+ * signature, ou null si la capture échoue.
+ */
+async function captureZone(zone: CombatZone): Promise<Buffer | null> {
+  const crop = await captureZoneImage(zone)
+  if (!crop) return null
+  // Normalise la taille : la signature est indépendante de la résolution.
+  return crop.resize({ width: GRID * 4, height: GRID * 4 }).toBitmap()
 }
 
 /** Signature colorimétrique : moyenne BGR de chaque cellule d'une grille 8×8. */
@@ -114,6 +122,28 @@ export async function calibrateZone(zone: CombatZone): Promise<number[] | null> 
   const bitmap = await captureZone(zone)
   if (!bitmap) return null
   return computeSignature(bitmap)
+}
+
+/**
+ * Aperçu de la détection pour l'UI : capture courante de la zone (PNG data
+ * URL) + distance à la signature de référence. null si pas de zone définie.
+ */
+export async function previewZone(): Promise<CombatZonePreview | null> {
+  const cm = getConfig().combat
+  if (!cm.detectZone) return null
+  const crop = await captureZoneImage(cm.detectZone)
+  if (!crop || crop.isEmpty()) return null
+
+  const bitmap = crop.resize({ width: GRID * 4, height: GRID * 4 }).toBitmap()
+  const dist = cm.detectSignature?.length
+    ? distance(computeSignature(bitmap), cm.detectSignature)
+    : 255
+  return {
+    image: crop.toDataURL(),
+    distance: Math.round(dist),
+    threshold: MATCH_THRESHOLD,
+    match: dist < MATCH_THRESHOLD
+  }
 }
 
 async function tick(): Promise<void> {
