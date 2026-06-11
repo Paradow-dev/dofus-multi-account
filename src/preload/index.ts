@@ -4,6 +4,7 @@ import {
   type AccountBarItem,
   type AppConfig,
   type BrowserConfig,
+  type CombatZone,
   type CycleDirection,
   type Favorite,
   type RendererApi,
@@ -73,7 +74,9 @@ const api: RendererApi = {
     const listener = (_e: unknown, inCombat: boolean): void => cb(inCombat)
     ipcRenderer.on(IPC.accountBarCombatState, listener)
     return () => ipcRenderer.removeListener(IPC.accountBarCombatState, listener)
-  }
+  },
+  pickCombatZone: () => ipcRenderer.invoke(IPC.combatZonePick),
+  sendZonePicked: (zone: CombatZone | null) => ipcRenderer.send(IPC.combatZonePicked, zone)
 }
 
 contextBridge.exposeInMainWorld('api', api)

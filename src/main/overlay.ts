@@ -108,11 +108,21 @@ export function syncOverlay(): void {
     if (!win) createWindow()
     else {
       win.setOpacity(cfg.opacity)
-      if (!win.isVisible()) win.showInactive()
+      if (!win.isVisible() && !focusHidden) win.showInactive()
     }
   } else {
     destroyOverlay()
   }
+}
+
+/** Masquage temporaire : la fenêtre active n'est pas Dofus (voir focusWatch.ts). */
+let focusHidden = false
+
+export function setOverlayFocusHidden(next: boolean): void {
+  focusHidden = next
+  if (!win) return
+  if (next) win.hide()
+  else if (getConfig().overlay.enabled && !win.isVisible()) win.showInactive()
 }
 
 /** Met à jour le nom de personnage affiché par l'overlay. */

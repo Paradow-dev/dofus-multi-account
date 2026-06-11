@@ -86,12 +86,26 @@ export interface BrowserConfig {
   height?: number
 }
 
+/** Zone d'écran (px, coordonnées écran) capturée pour la détection de combat. */
+export interface CombatZone {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 /** Configuration du mode combat (fin de tour automatique). */
 export interface CombatConfig {
   /** Touche de fin de tour transmise à Dofus (défaut : F1). Format accélérateur Electron. */
   endTurnKey: string
   /** Délai (ms) entre la touche fin de tour et le switch de compte (défaut : 150). */
   switchDelay: number
+  /** Détection automatique du combat par capture de la zone du bouton fin de tour. */
+  autoDetect: boolean
+  /** Zone capturée (sélectionnée par drag dans l'overlay de sélection). */
+  detectZone?: CombatZone
+  /** Signature de référence de la zone (calibrée pendant un combat). */
+  detectSignature?: number[]
 }
 
 /** Configuration applicative complète, persistée via electron-store. */
@@ -121,6 +135,8 @@ export interface AppConfig {
   browser: BrowserConfig
   /** Mode combat : fin de tour automatique. */
   combat: CombatConfig
+  /** Masque les overlays quand la fenêtre active n'est ni Dofus ni l'outil. */
+  hideOverlaysOutsideGame: boolean
 }
 
 /** Une fenêtre détectée à l'exécution. */
@@ -208,7 +224,11 @@ export const IPC = {
   /** barre de comptes → main : bascule le mode combat. */
   accountBarCombatToggle: 'accountbar:combat-toggle',
   /** main → toutes les fenêtres : état courant du mode combat. */
-  accountBarCombatState: 'accountbar:combat-state'
+  accountBarCombatState: 'accountbar:combat-state',
+  /** renderer → main : ouvre l'overlay de sélection de zone (détection combat). */
+  combatZonePick: 'combat:zone-pick',
+  /** fenêtre de sélection → main : zone choisie (ou null si annulé). */
+  combatZonePicked: 'combat:zone-picked'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -226,7 +246,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     opacity: 1,
     homeUrl: 'https://www.google.com'
   },
-  combat: { endTurnKey: 'F1', switchDelay: 150 }
+  combat: { endTurnKey: 'F1', switchDelay: 150, autoDetect: false },
+  hideOverlaysOutsideGame: true
 }
 
 /** API exposée au renderer via contextBridge (window.api). */
@@ -277,4 +298,11 @@ export interface RendererApi {
   toggleCombat(): void
   /** S'abonne aux changements d'état du mode combat. */
   onCombatState(cb: (inCombat: boolean) => void): () => void
+  /**
+   * Ouvre l'overlay de sélection de zone (détection combat) et calibre la
+   * signature. Retourne la config mise à jour, ou null si annulé.
+   */
+  pickCombatZone(): Promise<AppConfig | null>
+  /** (Fenêtre de sélection) Renvoie la zone choisie au main (null = annulé). */
+  sendZonePicked(zone: CombatZone | null): void
 }

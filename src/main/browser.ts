@@ -152,6 +152,16 @@ export function syncBrowser(): void {
   }
 }
 
+/** Masquage temporaire : la fenêtre active n'est pas Dofus (voir focusWatch.ts). */
+let focusHidden = false
+
+export function setBrowserFocusHidden(next: boolean): void {
+  focusHidden = next
+  if (!win) return
+  if (next) win.hide()
+  else if (getConfig().browser.enabled && !win.isVisible()) win.showInactive()
+}
+
 /** Met la fenêtre navigateur au premier plan (la crée si besoin). */
 export function focusBrowser(): void {
   if (!win) {

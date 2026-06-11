@@ -47,10 +47,20 @@ const browserSchema = z
   })
   .default(DEFAULT_CONFIG.browser)
 
+const combatZoneSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive()
+})
+
 const combatSchema = z
   .object({
     endTurnKey: z.string().default('F1'),
-    switchDelay: z.number().min(0).max(2000).default(150)
+    switchDelay: z.number().min(0).max(2000).default(150),
+    autoDetect: z.boolean().default(false),
+    detectZone: combatZoneSchema.optional(),
+    detectSignature: z.array(z.number()).optional()
   })
   .default(DEFAULT_CONFIG.combat)
 
@@ -67,7 +77,8 @@ const configSchema = z.object({
   overlay: overlaySchema,
   accountBar: accountBarSchema,
   browser: browserSchema,
-  combat: combatSchema
+  combat: combatSchema,
+  hideOverlaysOutsideGame: z.boolean().default(true)
 })
 
 const store = new Store<{ config: AppConfig }>({

@@ -119,12 +119,22 @@ export function syncAccountBar(): void {
       refreshTimer = setInterval(() => pushData(), 5000)
     } else {
       win.setOpacity(cfg.opacity)
-      if (!win.isVisible()) win.showInactive()
+      if (!win.isVisible() && !focusHidden) win.showInactive()
       pushData()
     }
   } else {
     destroyAccountBar()
   }
+}
+
+/** Masquage temporaire : la fenêtre active n'est pas Dofus (voir focusWatch.ts). */
+let focusHidden = false
+
+export function setAccountBarFocusHidden(next: boolean): void {
+  focusHidden = next
+  if (!win) return
+  if (next) win.hide()
+  else if (getConfig().accountBar.enabled && !win.isVisible()) win.showInactive()
 }
 
 /** Met à jour le compte actif mis en avant dans la barre. */

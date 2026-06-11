@@ -14,6 +14,8 @@ import { checkForUpdates, quitAndInstall } from './updater'
 import { resizeOverlayWindow, resetOverlayPosition } from './overlay'
 import { resizeAccountBarWindow, resetAccountBarPosition } from './accountBar'
 import { focusBrowser } from './browser'
+import { pickZone } from './zonePicker'
+import { calibrateZone } from './combatDetect'
 
 /** Enregistre tous les handlers IPC. À appeler une fois au démarrage. */
 export function registerIpc(): void {
@@ -59,4 +61,22 @@ export function registerIpc(): void {
   )
 
   ipcMain.on(IPC.accountBarCombatToggle, () => toggleCombat())
+
+  // Sélection de la zone du bouton fin de tour (détection automatique du combat).
+  // Calibre la signature de référence immédiatement après la sélection : à faire
+  // pendant un combat, bouton visible. Retourne la config mise à jour (ou null).
+  ipcMain.handle(IPC.combatZonePick, async () => {
+    const zone = await pickZone()
+    if (!zone) return null
+    // Laisse le temps à l'overlay de sélection de disparaître avant la capture.
+    await new Promise((r) => setTimeout(r, 300))
+    const signature = await calibrateZone(zone)
+    if (!signature) return null
+    const cfg = getConfig()
+    const { config } = applyConfig({
+      ...cfg,
+      combat: { ...cfg.combat, detectZone: zone, detectSignature: signature }
+    })
+    return config
+  })
 }

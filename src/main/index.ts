@@ -9,6 +9,9 @@ import { destroyOverlay } from './overlay'
 import { destroyAccountBar } from './accountBar'
 import { destroyBrowser } from './browser'
 import { initKeyboardHook, stopKeyboardHook } from './keyboardHook'
+import { initFocusWatch, stopFocusWatch } from './focusWatch'
+import { stopCombatDetect } from './combatDetect'
+import { registerZonePickerIpc } from './zonePicker'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -64,10 +67,12 @@ let isQuitting = false
 
 app.whenReady().then(() => {
   registerIpc()
+  registerZonePickerIpc()
   bootstrapShortcuts()
   createWindow()
   createTray(() => mainWindow)
   initKeyboardHook()
+  initFocusWatch()
   // Mise à jour auto (no-op en dev) ; rafraîchit le menu du tray à chaque état.
   initUpdater(() => rebuildMenu(() => mainWindow))
 
@@ -83,6 +88,8 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   unregisterAll()
   stopKeyboardHook()
+  stopFocusWatch()
+  stopCombatDetect()
   destroyOverlay()
   destroyAccountBar()
   destroyBrowser()

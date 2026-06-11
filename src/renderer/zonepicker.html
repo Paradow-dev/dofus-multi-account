@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';"
+    />
+    <title>Sélection de zone</title>
+    <link rel="stylesheet" href="./zonepicker.css" />
+  </head>
+  <body>
+    <div id="hint">
+      Dessinez un rectangle autour du bouton <strong>fin de tour</strong> (à faire pendant un
+      combat) — <kbd>Échap</kbd> pour annuler
+    </div>
+    <div id="selection"></div>
+    <script type="module" src="./zonepicker.ts"></script>
+  </body>
+</html>

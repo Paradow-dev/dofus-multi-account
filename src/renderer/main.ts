@@ -62,7 +62,8 @@ const state: State = {
       opacity: 1,
       homeUrl: 'https://www.google.com'
     },
-    combat: { endTurnKey: 'F1', switchDelay: 150 }
+    combat: { endTurnKey: 'F1', switchDelay: 150, autoDetect: false },
+    hideOverlaysOutsideGame: true
   },
   windows: [],
   registrations: [],
@@ -721,10 +722,19 @@ function accountBarSection(): (Node | null)[] {
 
 /** Page « Overlays » : overlay du personnage + barre de comptes réunis. */
 function renderOverlays(): HTMLElement {
+  const hideToggle = renderSwitch(
+    'Masquer les overlays hors du jeu',
+    state.config.hideOverlaysOutsideGame ?? true,
+    (v) => {
+      state.config.hideOverlaysOutsideGame = v
+      void save()
+    }
+  )
   return pageEl(
     'Overlays',
     'Affichages flottants toujours au premier plan.',
-    h('div', { class: 'field-label', text: 'Overlay du personnage' }),
+    h('div', { class: 'combat-row' }, [hideToggle]),
+    h('div', { class: 'field-label sec-gap', text: 'Overlay du personnage' }),
     ...overlaySection(),
     h('div', { class: 'field-label sec-gap', text: 'Barre de comptes' }),
     ...accountBarSection()
@@ -798,7 +808,7 @@ function renderBrowser(): HTMLElement {
 }
 
 function renderCombat(): HTMLElement {
-  const cm = state.config.combat ?? { endTurnKey: 'F1', switchDelay: 150 }
+  const cm = state.config.combat ?? { endTurnKey: 'F1', switchDelay: 150, autoDetect: false }
 
   const toggleShortcut = field(
     'Raccourci mode combat',
@@ -840,6 +850,53 @@ function renderCombat(): HTMLElement {
 
   const grid = h('div', { class: 'input-grid' }, [toggleShortcut, endTurnShortcut])
 
+  // --- Détection automatique du combat (capture de la zone du bouton fin de tour) ---
+  const detectToggle = renderSwitch(
+    'Détection automatique du combat',
+    cm.autoDetect ?? false,
+    (v) => {
+      state.config.combat = { ...cm, autoDetect: v }
+      void save()
+    }
+  )
+
+  const zoneStatus = h('span', {
+    class: 'upd-pct',
+    text: cm.detectZone
+      ? `Zone : ${cm.detectZone.width}×${cm.detectZone.height} px @ (${cm.detectZone.x}, ${cm.detectZone.y})`
+      : 'Aucune zone définie'
+  })
+
+  const pickBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: cm.detectZone ? 'Redéfinir la zone' : 'Définir la zone',
+    title: 'À faire pendant un combat, bouton fin de tour visible',
+    on: {
+      click: () => {
+        void (async () => {
+          const updated = await window.api.pickCombatZone()
+          if (updated) {
+            state.config = updated
+            render()
+          }
+        })()
+      }
+    }
+  })
+
+  const detectRow = h(
+    'div',
+    { class: 'field', attrs: { style: 'margin-top: 32px' } },
+    [
+      h('span', { class: 'field-label', text: 'Détection automatique' }),
+      h('div', { class: 'combat-row' }, [detectToggle]),
+      h('div', { class: 'row-actions', attrs: { style: 'margin-top: 12px; display: flex; align-items: center; gap: 12px' } }, [
+        pickBtn,
+        zoneStatus
+      ])
+    ]
+  )
+
   const note = h('div', { class: 'alert alert--info', attrs: { style: 'margin-top: 32px' } }, [
     h('div', { class: 'alert-body' }, [
       h('p', {
@@ -848,6 +905,14 @@ function renderCombat(): HTMLElement {
           'Quand actif, appuyer sur la <strong>touche fin de tour</strong> (ex. F1) envoie la touche à Dofus ' +
           '<em>puis</em> bascule automatiquement vers le compte suivant après le délai configuré. ' +
           "Le mode combat se désactive seul après <strong>90 secondes</strong> d’inactivité."
+      }),
+      h('p', {
+        attrs: { style: 'margin-top: 8px' },
+        html:
+          '<strong>Détection automatique</strong> : pendant un combat, cliquez « Définir la zone » puis ' +
+          'dessinez un rectangle autour du bouton <strong>fin de tour</strong>. L’outil capture cette zone ' +
+          'toutes les 2 secondes : si le bouton est visible, le mode combat s’active tout seul (et se ' +
+          'désactive quand il disparaît).'
       })
     ])
   ])
@@ -857,6 +922,7 @@ function renderCombat(): HTMLElement {
     'Switch automatique de compte à chaque fin de tour.',
     grid,
     delayRow,
+    detectRow,
     note
   )
 }

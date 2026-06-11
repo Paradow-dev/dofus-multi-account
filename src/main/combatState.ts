@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, shell } from 'electron'
 import { IPC } from '@shared/types'
 
 let inCombat = false
@@ -14,7 +14,7 @@ function broadcast(): void {
 
 function scheduleAutoExit(): void {
   if (exitTimer) clearTimeout(exitTimer)
-  exitTimer = setTimeout(() => exitCombat(), AUTO_EXIT_MS)
+  exitTimer = setTimeout(() => exitCombat(true), AUTO_EXIT_MS)
 }
 
 export function isInCombat(): boolean {
@@ -27,12 +27,18 @@ export function enterCombat(): void {
   broadcast()
 }
 
-export function exitCombat(): void {
+/**
+ * Sort du mode combat. `auto` = sortie déclenchée par le timer d'inactivité :
+ * un bip système signale la désactivation (sinon facile à manquer).
+ */
+export function exitCombat(auto = false): void {
+  const wasInCombat = inCombat
   inCombat = false
   if (exitTimer) {
     clearTimeout(exitTimer)
     exitTimer = null
   }
+  if (auto && wasInCombat) shell.beep()
   broadcast()
 }
 

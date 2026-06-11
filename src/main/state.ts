@@ -11,6 +11,7 @@ import { registerAll } from './shortcuts'
 import { syncOverlay } from './overlay'
 import { syncAccountBar } from './accountBar'
 import { syncBrowser } from './browser'
+import { syncCombatDetect } from './combatDetect'
 
 let currentConfig: AppConfig = loadConfig()
 let lastRegistrations: ShortcutRegistration[] = []
@@ -36,6 +37,7 @@ export function applyConfig(config: AppConfig): {
   syncOverlay()
   syncAccountBar()
   syncBrowser()
+  syncCombatDetect()
   broadcastShortcutsState()
   return { config: currentConfig, shortcuts: lastRegistrations }
 }
@@ -46,6 +48,7 @@ export function bootstrapShortcuts(): void {
   syncOverlay()
   syncAccountBar()
   syncBrowser()
+  syncCombatDetect()
 }
 
 /**
