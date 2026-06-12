@@ -72,15 +72,23 @@ let bindings: MouseBinding[] = []
 let started = false
 let pumpTimer: NodeJS.Timeout | null = null
 
-// Références maintenues en vie (sinon le GC peut libérer callback/handle).
+// FFI initialisé UNE SEULE FOIS et réutilisé à chaque session start/stop :
+// koffi.register sans unregister fuit un trampoline natif à chaque appel
+// (pool limité → crash à terme), et un koffi.proto nommé ne peut pas être
+// re-déclaré (le second start jetait « type already exists » et désactivait
+// silencieusement les raccourcis souris). Or le hook est cyclé à chaque
+// sauvegarde de configuration (setMouseBindings).
+let ffiReady = false
 let hookProcCb: unknown = null
 let hookHandle: unknown = null
 
 type Fn = (...args: unknown[]) => unknown
+let SetWindowsHookExW: Fn | null = null
 let CallNextHookEx: Fn | null = null
 let UnhookWindowsHookEx: Fn | null = null
 let PeekMessageW: Fn | null = null
 let GetAsyncKeyState: Fn | null = null
+let GetModuleHandleW: Fn | null = null
 
 const WH_MOUSE_LL = 14
 const WM_MBUTTONDOWN = 0x0207
@@ -141,11 +149,34 @@ function handleButton(button: MouseButton): boolean {
   return true
 }
 
-function start(): boolean {
-  if (started) return true
-  if (process.platform !== 'win32') return false
-  if (!loadKoffi() || !koffi) return false
+// Hook souris : observe molette/boutons latéraux, consomme si un binding matche.
+function procImpl(nCode: number, wParam: number, lParam: unknown): number {
+  let swallow = false
+  try {
+    if (Number(nCode) >= 0) {
+      const msg = Number(wParam)
+      if (msg === WM_MBUTTONDOWN) {
+        swallow = handleButton('middle')
+      } else if (msg === WM_XBUTTONDOWN) {
+        // MSLLHOOKSTRUCT : champ DWORD `mouseData` à l'offset 8 (après POINT pt).
+        // Le bouton X est codé dans le mot de poids fort.
+        const mouseData = Number(koffi!.decode(lParam, 8, 'uint32'))
+        const which = (mouseData >>> 16) & 0xffff
+        if (which === XBUTTON1) swallow = handleButton('back')
+        else if (which === XBUTTON2) swallow = handleButton('forward')
+      }
+    }
+  } catch {
+    /* ignore — on laisse passer l'événement */
+  }
+  if (swallow) return 1 // consomme l'événement (non transmis au premier plan)
+  return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+}
 
+/** Charge les fonctions Win32 et enregistre le callback une seule fois. */
+function initFfi(): boolean {
+  if (ffiReady) return true
+  if (!loadKoffi() || !koffi) return false
   try {
     const user32 = koffi.load('user32.dll')
     const kernel32 = koffi.load('kernel32.dll')
@@ -156,7 +187,7 @@ function start(): boolean {
       'intptr_t LowLevelMouseProc(int32 nCode, uintptr_t wParam, void* lParam)'
     )
 
-    const SetWindowsHookExW = user32.func(
+    SetWindowsHookExW = user32.func(
       'void* SetWindowsHookExW(int32, void*, void*, uint32)'
     ) as unknown as Fn
     CallNextHookEx = user32.func(
@@ -165,34 +196,25 @@ function start(): boolean {
     UnhookWindowsHookEx = user32.func('bool UnhookWindowsHookEx(void*)') as unknown as Fn
     PeekMessageW = user32.func('bool PeekMessageW(void*, void*, uint32, uint32, uint32)') as unknown as Fn
     GetAsyncKeyState = user32.func('int16 GetAsyncKeyState(int32)') as unknown as Fn
-    const GetModuleHandleW = kernel32.func('void* GetModuleHandleW(void*)') as unknown as Fn
+    GetModuleHandleW = kernel32.func('void* GetModuleHandleW(void*)') as unknown as Fn
 
-    const proc = (nCode: number, wParam: number, lParam: unknown): number => {
-      let swallow = false
-      try {
-        if (Number(nCode) >= 0) {
-          const msg = Number(wParam)
-          if (msg === WM_MBUTTONDOWN) {
-            swallow = handleButton('middle')
-          } else if (msg === WM_XBUTTONDOWN) {
-            // MSLLHOOKSTRUCT : champ DWORD `mouseData` à l'offset 8 (après POINT pt).
-            // Le bouton X est codé dans le mot de poids fort.
-            const mouseData = Number(koffi!.decode(lParam, 8, 'uint32'))
-            const which = (mouseData >>> 16) & 0xffff
-            if (which === XBUTTON1) swallow = handleButton('back')
-            else if (which === XBUTTON2) swallow = handleButton('forward')
-          }
-        }
-      } catch {
-        /* ignore — on laisse passer l'événement */
-      }
-      if (swallow) return 1 // consomme l'événement (non transmis au premier plan)
-      return Number(CallNextHookEx!(null, nCode, wParam, lParam))
-    }
-    hookProcCb = koffi.register(proc, koffi.pointer(HOOKPROC))
+    hookProcCb = koffi.register(procImpl, koffi.pointer(HOOKPROC))
+    ffiReady = true
+    return true
+  } catch (err) {
+    console.warn('[mouseHook] chargement FFI échoué :', err)
+    return false
+  }
+}
 
-    const hInst = GetModuleHandleW(null)
-    hookHandle = SetWindowsHookExW(WH_MOUSE_LL, hookProcCb, hInst, 0)
+function start(): boolean {
+  if (started) return true
+  if (process.platform !== 'win32') return false
+  if (!initFfi()) return false
+
+  try {
+    const hInst = GetModuleHandleW!(null)
+    hookHandle = SetWindowsHookExW!(WH_MOUSE_LL, hookProcCb, hInst, 0)
     if (!hookHandle) throw new Error('SetWindowsHookExW a échoué')
 
     // Pompe de messages : les hooks bas-niveau exigent que le thread traite des
