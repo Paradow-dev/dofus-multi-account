@@ -1,0 +1,143 @@
+/* Panneau « macro rapide » : fond transparent, pilule déplaçable (cf. accountbar.css). */
+
+html,
+body.mb-body {
+  margin: 0;
+  height: 100vh;
+  width: 100vw;
+  background: transparent;
+  overflow: hidden;
+  cursor: move;
+}
+
+.mb-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* La pilule entière est une poignée de déplacement (drag région Electron). */
+.mb-bar {
+  -webkit-app-region: drag;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: 860px;
+  padding: 7px 14px 7px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2);
+}
+
+/* Poignée visuelle (points) à gauche. */
+.mb-grip {
+  flex: none;
+  width: 10px;
+  height: 22px;
+  background-image: radial-gradient(var(--ink-4) 1.3px, transparent 1.3px);
+  background-size: 5px 7px;
+  background-position: 0 2px;
+  opacity: 0.7;
+}
+
+.mb-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mb-text {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.mb-text--hint {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* Pastille d'état : rouge clignotante (REC) ou verte (lecture). */
+.mb-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: mb-blink 1s ease-in-out infinite;
+}
+
+.mb-dot--rec {
+  background: var(--danger, #e5484d);
+}
+
+.mb-dot--play {
+  background: var(--success, #46a758);
+}
+
+@keyframes mb-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Boutons d'action (hors zone de déplacement). */
+.mb-btn {
+  -webkit-app-region: no-drag;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  padding: 5px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+
+.mb-btn:hover {
+  background: var(--bg);
+  border-color: var(--line-strong);
+}
+
+.mb-btn--primary {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mb-btn--primary:hover {
+  background: var(--accent-soft);
+  opacity: 0.85;
+}
+
+/* Barre de progression de la lecture. */
+.mb-progress {
+  flex: none;
+  width: 90px;
+  height: 5px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.mb-progress-fill {
+  height: 100%;
+  background: var(--success, #46a758);
+  border-radius: var(--r-pill);
+  transition: width var(--dur-fast) var(--ease-standard);
+}

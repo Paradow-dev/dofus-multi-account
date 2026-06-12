@@ -7,6 +7,8 @@ import {
   type CombatZone,
   type CycleDirection,
   type Favorite,
+  type QuickMacroAction,
+  type QuickMacroState,
   type RendererApi,
   type ShortcutRegistration,
   type UpdateState
@@ -77,7 +79,16 @@ const api: RendererApi = {
   },
   pickCombatZone: () => ipcRenderer.invoke(IPC.combatZonePick),
   sendZonePicked: (zone: CombatZone | null) => ipcRenderer.send(IPC.combatZonePicked, zone),
-  previewCombatZone: () => ipcRenderer.invoke(IPC.combatZonePreview)
+  previewCombatZone: () => ipcRenderer.invoke(IPC.combatZonePreview),
+  onQuickMacroState: (cb: (state: QuickMacroState) => void) => {
+    const listener = (_e: unknown, s: QuickMacroState): void => cb(s)
+    ipcRenderer.on(IPC.macroState, listener)
+    return () => ipcRenderer.removeListener(IPC.macroState, listener)
+  },
+  macroAction: (action: QuickMacroAction) => ipcRenderer.send(IPC.macroAction, action),
+  resizeMacroBar: (width: number, height: number) =>
+    ipcRenderer.send(IPC.macroBarResize, width, height),
+  resetMacroBarPosition: () => ipcRenderer.invoke(IPC.macroBarResetPosition)
 }
 
 contextBridge.exposeInMainWorld('api', api)

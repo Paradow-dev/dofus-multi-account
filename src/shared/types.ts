@@ -108,6 +108,43 @@ export interface CombatConfig {
   detectSignature?: number[]
 }
 
+/**
+ * Macro rapide éphémère : enregistre une séquence de touches/clics sur le compte
+ * actif, puis la rejoue une fois sur les autres comptes. Rien n'est persisté —
+ * la macro est effacée après exécution.
+ */
+export interface QuickMacroConfig {
+  enabled: boolean
+  /** Raccourci global pour démarrer/arrêter l'enregistrement. */
+  shortcut: string
+  /** Délai avant le début de l'enregistrement (secondes). */
+  countdownSec: number
+  /** Délai entre chaque compte lors de la lecture (ms). */
+  betweenAccountsMs: number
+  opacity: number
+  x?: number
+  y?: number
+}
+
+export type QuickMacroPhase = 'idle' | 'countdown' | 'recording' | 'confirm' | 'replaying'
+
+export interface QuickMacroState {
+  phase: QuickMacroPhase
+  /** Compte à rebours restant (s) en phase countdown. */
+  countdown?: number
+  eventCount: number
+  durationMs: number
+  /** Lecture : index du compte courant (1-based) et total. */
+  replayIndex?: number
+  replayTotal?: number
+  replayLabel?: string
+  /** Nombre d'autres comptes détectés (pour le bouton « Appliquer sur les N autres »). */
+  otherCount?: number
+}
+
+/** Action envoyée par le panneau macro au process principal. */
+export type QuickMacroAction = 'stop' | 'apply-all' | 'apply-active' | 'cancel'
+
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
   accounts: AccountConfig[]
@@ -135,6 +172,8 @@ export interface AppConfig {
   browser: BrowserConfig
   /** Mode combat : fin de tour automatique. */
   combat: CombatConfig
+  /** Macro rapide éphémère (enregistrer puis rejouer sur les autres comptes). */
+  quickMacro: QuickMacroConfig
   /** Masque les overlays quand la fenêtre active n'est ni Dofus ni l'outil. */
   hideOverlaysOutsideGame: boolean
 }
@@ -230,7 +269,15 @@ export const IPC = {
   /** fenêtre de sélection → main : zone choisie (ou null si annulé). */
   combatZonePicked: 'combat:zone-picked',
   /** renderer → main : capture la zone configurée (aperçu de la détection). */
-  combatZonePreview: 'combat:zone-preview'
+  combatZonePreview: 'combat:zone-preview',
+  /** main → panneau macro + réglages : état courant de la macro rapide. */
+  macroState: 'macro:state',
+  /** panneau macro → main : action utilisateur (stop / apply-all / apply-active / cancel). */
+  macroAction: 'macro:action',
+  /** panneau macro → main : taille souhaitée (px) pour adapter la fenêtre. */
+  macroBarResize: 'macrobar:resize',
+  /** renderer → main : réinitialise la position du panneau macro. */
+  macroBarResetPosition: 'macrobar:reset-position'
 } as const
 
 export type CycleDirection = 'next' | 'prev'
@@ -249,6 +296,13 @@ export const DEFAULT_CONFIG: AppConfig = {
     homeUrl: 'https://www.google.com'
   },
   combat: { endTurnKey: 'F1', switchDelay: 150, autoDetect: false },
+  quickMacro: {
+    enabled: false,
+    shortcut: 'Ctrl+Alt+R',
+    countdownSec: 3,
+    betweenAccountsMs: 600,
+    opacity: 0.95
+  },
   hideOverlaysOutsideGame: true
 }
 
@@ -313,6 +367,14 @@ export interface RendererApi {
    * null si aucune zone n'est définie ou si la capture échoue.
    */
   previewCombatZone(): Promise<CombatZonePreview | null>
+  /** (Panneau macro) S'abonne à l'état courant de la macro rapide. */
+  onQuickMacroState(cb: (state: QuickMacroState) => void): () => void
+  /** (Panneau macro) Envoie une action utilisateur au process principal. */
+  macroAction(action: QuickMacroAction): void
+  /** (Panneau macro) Demande d'adapter la taille de la fenêtre au contenu (px). */
+  resizeMacroBar(width: number, height: number): void
+  /** Réinitialise la position du panneau macro (re-centre en bas de l'écran). */
+  resetMacroBarPosition(): Promise<void>
 }
 
 /** Aperçu de la zone de détection (page Mode combat). */

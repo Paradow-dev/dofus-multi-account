@@ -68,7 +68,8 @@ export function updateDofusHandles(wins: DetectedWindow[]): void {
   knownDofusWindows = new Map(wins.map((w) => [w.handle, w.accountId]))
 }
 
-function resolveVk(key: string): number | null {
+/** Code virtuel Windows de la touche finale d'un accélérateur (null si inconnue). */
+export function resolveVk(key: string): number | null {
   const token = key.split('+').pop() ?? key
   return VK_MAP[token] ?? null
 }

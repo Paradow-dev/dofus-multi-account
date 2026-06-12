@@ -14,6 +14,7 @@ import { getConfig } from './state'
 import { setOverlayFocusHidden } from './overlay'
 import { setAccountBarFocusHidden } from './accountBar'
 import { setBrowserFocusHidden } from './browser'
+import { setMacroBarFocusHidden } from './macroBar'
 
 const POLL_MS = 500
 const REFRESH_HANDLES_MS = 3000
@@ -69,6 +70,7 @@ function applyHidden(next: boolean): void {
   setOverlayFocusHidden(next)
   setAccountBarFocusHidden(next)
   setBrowserFocusHidden(next)
+  setMacroBarFocusHidden(next)
 }
 
 function tick(): void {
