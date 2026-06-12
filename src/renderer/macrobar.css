@@ -42,6 +42,12 @@ body.mb-body {
   gap: 9px;
 }
 
+/* L'attribut hidden (2e ligne vide au repos) doit l'emporter sur display:flex,
+ * sinon la ligne fantôme garde le gap de la carte → vide sous la 1re ligne. */
+.mb-row[hidden] {
+  display: none;
+}
+
 .mb-row--sub {
   gap: 6px;
 }
