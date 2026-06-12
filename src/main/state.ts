@@ -12,6 +12,7 @@ import { syncOverlay } from './overlay'
 import { syncAccountBar } from './accountBar'
 import { syncBrowser } from './browser'
 import { syncCombatDetect } from './combatDetect'
+import { syncMacroBar } from './macroBar'
 
 let currentConfig: AppConfig = loadConfig()
 let lastRegistrations: ShortcutRegistration[] = []
@@ -38,6 +39,7 @@ export function applyConfig(config: AppConfig): {
   syncAccountBar()
   syncBrowser()
   syncCombatDetect()
+  syncMacroBar()
   broadcastShortcutsState()
   return { config: currentConfig, shortcuts: lastRegistrations }
 }
@@ -49,6 +51,7 @@ export function bootstrapShortcuts(): void {
   syncAccountBar()
   syncBrowser()
   syncCombatDetect()
+  syncMacroBar()
 }
 
 /**
@@ -80,6 +83,31 @@ export function updateAccountBarPosition(x: number, y: number): void {
 export function clearAccountBarPosition(): void {
   const { x: _x, y: _y, ...rest } = currentConfig.accountBar
   currentConfig = saveConfig({ ...currentConfig, accountBar: rest })
+}
+
+/** Persiste la position du panneau macro (déplacement à la souris). */
+export function updateMacroBarPosition(x: number, y: number): void {
+  currentConfig = saveConfig({
+    ...currentConfig,
+    quickMacro: { ...currentConfig.quickMacro, x, y }
+  })
+}
+
+/** Oublie la position persistée du panneau macro (re-centre en bas). */
+export function clearMacroBarPosition(): void {
+  const { x: _x, y: _y, ...rest } = currentConfig.quickMacro
+  currentConfig = saveConfig({ ...currentConfig, quickMacro: rest })
+}
+
+/** Diffuse un message à toutes les fenêtres (fenêtres détruites ignorées). */
+export function broadcast(channel: string, payload: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    try {
+      win.webContents.send(channel, payload)
+    } catch {
+      /* ignore — fenêtre en cours de destruction */
+    }
+  }
 }
 
 function broadcastShortcutsState(): void {

@@ -64,6 +64,18 @@ const combatSchema = z
   })
   .default(DEFAULT_CONFIG.combat)
 
+const quickMacroSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    shortcut: z.string().default('Ctrl+Alt+R'),
+    countdownSec: z.number().min(0).max(10).default(3),
+    betweenAccountsMs: z.number().min(0).max(2000).default(600),
+    opacity: z.number().min(0.2).max(1).default(0.95),
+    x: z.number().optional(),
+    y: z.number().optional()
+  })
+  .default(DEFAULT_CONFIG.quickMacro)
+
 const configSchema = z.object({
   accounts: z.array(accountSchema),
   cycleNext: z.string(),
@@ -78,6 +90,7 @@ const configSchema = z.object({
   accountBar: accountBarSchema,
   browser: browserSchema,
   combat: combatSchema,
+  quickMacro: quickMacroSchema,
   hideOverlaysOutsideGame: z.boolean().default(true)
 })
 

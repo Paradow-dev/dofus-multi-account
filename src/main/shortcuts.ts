@@ -10,6 +10,7 @@ import { setActiveCharacter } from './overlay'
 import { setActiveAccount } from './accountBar'
 import { getConfig, applyConfig } from './state'
 import { toggleCombat } from './combatState'
+import { toggleQuickMacro } from './quickMacro'
 import {
   isMouseAccelerator,
   parseMouseAccelerator,
@@ -147,6 +148,12 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
   })
   tryRegister(config.combatToggle ?? '', 'Mode combat', () => {
     setImmediate(() => toggleCombat())
+  })
+  // Macro rapide : démarre/arrête l'enregistrement. Accélérateur vide quand la
+  // fonctionnalité est désactivée (tryRegister ignore les vides), pour suivre
+  // la même convention que les autres entrées optionnelles ci-dessus.
+  tryRegister(config.quickMacro?.enabled ? config.quickMacro.shortcut : '', 'Macro rapide', () => {
+    setImmediate(() => toggleQuickMacro())
   })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.

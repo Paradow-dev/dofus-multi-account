@@ -63,6 +63,13 @@ const state: State = {
       homeUrl: 'https://www.google.com'
     },
     combat: { endTurnKey: 'F1', switchDelay: 150, autoDetect: false },
+    quickMacro: {
+      enabled: false,
+      shortcut: 'Ctrl+Alt+R',
+      countdownSec: 3,
+      betweenAccountsMs: 600,
+      opacity: 0.95
+    },
     hideOverlaysOutsideGame: true
   },
   windows: [],
@@ -594,8 +601,107 @@ function renderCycle(): HTMLElement {
     h('div', { class: 'field-label', text: 'Cycle des comptes' }),
     cycleGrid,
     h('div', { class: 'field-label sec-gap', text: 'Affichage des overlays' }),
-    overlayGrid
+    overlayGrid,
+    h('div', { class: 'field-label sec-gap', text: 'Macro rapide' }),
+    ...quickMacroSection()
   )
+}
+
+/** Section « macro rapide » : enregistrer une séquence puis la rejouer sur les autres comptes. */
+function quickMacroSection(): (Node | null)[] {
+  const qm = state.config.quickMacro
+
+  const toggle = renderSwitch('Activer la macro rapide', qm.enabled, (v) => {
+    qm.enabled = v
+    void save()
+  })
+
+  const shortcutRow = field(
+    'Raccourci d’enregistrement',
+    shortcutCapture(qm.shortcut, (a) => {
+      if (!a) return
+      qm.shortcut = a
+      markDirty()
+    })
+  )
+
+  // Compte à rebours avant l'enregistrement (1 / 3 / 5 secondes).
+  const countdownSel = h('select', {
+    class: 'input',
+    on: {
+      change: (e) => {
+        qm.countdownSec = Number((e.target as HTMLSelectElement).value)
+        markDirty()
+      }
+    }
+  }, [
+    optionEl('1', '1 seconde'),
+    optionEl('3', '3 secondes'),
+    optionEl('5', '5 secondes')
+  ]) as HTMLSelectElement
+  countdownSel.value = String(qm.countdownSec)
+  const countdownRow = field(
+    'Délai avant enregistrement',
+    h('div', { class: 'select-wrap' }, [countdownSel, caret()])
+  )
+
+  const grid = h('div', { class: 'input-grid two' }, [shortcutRow, countdownRow])
+
+  // Délai entre chaque compte lors de la lecture (0 → 2000 ms).
+  const delayPct = (v: number): string => `${v} ms`
+  const delayLabel = h('span', { class: 'upd-pct', text: delayPct(qm.betweenAccountsMs) })
+  const delaySlider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0', max: '2000', step: '100', value: String(qm.betweenAccountsMs) },
+    on: {
+      input: (e) => {
+        delayLabel.textContent = delayPct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        qm.betweenAccountsMs = Number((e.target as HTMLInputElement).value)
+        markDirty()
+      }
+    }
+  }) as HTMLInputElement
+  const delayRow = h('div', { class: 'field' }, [
+    h('span', { class: 'field-label', text: 'Délai entre les comptes' }),
+    h('div', { class: 'range-row' }, [delaySlider, delayLabel])
+  ])
+
+  const opacityRow = opacityField(qm.opacity, qm.enabled, (v) => {
+    qm.opacity = v
+    void save()
+  })
+
+  const resetBtn = h('button', {
+    class: 'btn btn--secondary btn--sm',
+    text: 'Réinitialiser la position',
+    title: 'Re-centrer le panneau en bas de l’écran',
+    on: { click: () => void window.api.resetMacroBarPosition() }
+  }) as HTMLButtonElement
+  resetBtn.disabled = !qm.enabled
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Enregistrez une séquence de <strong>touches et clics</strong> sur votre premier compte ' +
+          '(raccourci ci-dessus, puis <strong>F12</strong> pour arrêter), et rejouez-la sur les ' +
+          '<strong>autres comptes</strong> dans l’ordre de cycle. <strong>Échap</strong> interrompt la lecture. ' +
+          'La macro est <strong>éphémère</strong>&nbsp;: elle est effacée après exécution.'
+      })
+    ])
+  ])
+
+  return [
+    h('div', { class: 'combat-row' }, [toggle]),
+    grid,
+    delayRow,
+    opacityRow,
+    h('div', { class: 'row-actions' }, [resetBtn]),
+    note
+  ]
 }
 
 function renderLayout(): HTMLElement {

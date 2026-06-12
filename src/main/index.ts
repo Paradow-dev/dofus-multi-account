@@ -7,6 +7,8 @@ import { createTray, destroyTray, rebuildMenu } from './tray'
 import { initUpdater } from './updater'
 import { destroyOverlay } from './overlay'
 import { destroyAccountBar } from './accountBar'
+import { destroyMacroBar } from './macroBar'
+import { stopQuickMacro } from './quickMacro'
 import { destroyBrowser } from './browser'
 import { initKeyboardHook, stopKeyboardHook } from './keyboardHook'
 import { initFocusWatch, stopFocusWatch } from './focusWatch'
@@ -90,8 +92,10 @@ app.on('will-quit', () => {
   stopKeyboardHook()
   stopFocusWatch()
   stopCombatDetect()
+  stopQuickMacro()
   destroyOverlay()
   destroyAccountBar()
+  destroyMacroBar()
   destroyBrowser()
   destroyTray()
 })

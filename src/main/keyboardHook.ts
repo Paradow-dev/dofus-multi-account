@@ -36,6 +36,8 @@ const VK_MAP: Record<string, number> = {
 const WH_KEYBOARD_LL = 13
 const WM_KEYDOWN = 0x0100
 const WM_SYSKEYDOWN = 0x0104
+/** KBDLLHOOKSTRUCT.flags : événement injecté (SendInput — lecture de macro). */
+const LLKHF_INJECTED = 0x10
 const EVENT_SYSTEM_FLASH = 0x8005
 const WINEVENT_SKIPOWNPROCESS = 0x0002
 /** idObject = 0 = OBJID_WINDOW : c'est la fenêtre elle-même qui clignote. */
@@ -68,7 +70,8 @@ export function updateDofusHandles(wins: DetectedWindow[]): void {
   knownDofusWindows = new Map(wins.map((w) => [w.handle, w.accountId]))
 }
 
-function resolveVk(key: string): number | null {
+/** Code virtuel Windows de la touche finale d'un accélérateur (null si inconnue). */
+export function resolveVk(key: string): number | null {
   const token = key.split('+').pop() ?? key
   return VK_MAP[token] ?? null
 }
@@ -117,8 +120,14 @@ export function initKeyboardHook(): boolean {
         if (Number(nCode) >= 0) {
           const msg = Number(wParam)
           if (msg === WM_KEYDOWN || msg === WM_SYSKEYDOWN) {
-            // KBDLLHOOKSTRUCT : vkCode est le premier DWORD (offset 0).
+            // KBDLLHOOKSTRUCT : vkCode (offset 0), scanCode (4), flags (8).
             const vkCode = Number(koffi!.decode(lParam, 0, 'uint32'))
+            const flags = Number(koffi!.decode(lParam, 8, 'uint32'))
+            // Ignore les touches injectées (lecture de macro) : elles ne
+            // doivent pas re-déclencher la bascule de combat.
+            if ((flags & LLKHF_INJECTED) !== 0) {
+              return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+            }
             const cfg = getConfig()
             const targetVk = resolveVk(cfg.combat?.endTurnKey ?? 'F1')
 
