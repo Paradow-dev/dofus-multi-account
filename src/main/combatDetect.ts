@@ -35,10 +35,20 @@ let missStreak = 0
 let enteredByDetect = false
 
 /**
- * Capture la zone d'écran demandée et retourne l'image recadrée (taille
- * native), ou null si la capture échoue. Gère le facteur d'échelle.
+ * Capture la zone d'écran demandée et retourne l'image recadrée, ou null si
+ * la capture échoue. Gère le facteur d'échelle.
+ *
+ * `maxZonePx` limite la définition demandée : la miniature d'écran est
+ * réduite juste assez pour que la zone recadrée fasse au moins maxZonePx de
+ * côté. La boucle de détection n'a besoin que de 32 px (signature 8×8) : lui
+ * demander l'écran entier en résolution native toutes les 2 s coûtait une
+ * copie/réduction de plusieurs mégapixels — sensible en jeu. Sans maxZonePx
+ * (aperçu UI), la capture reste en pleine résolution.
  */
-async function captureZoneImage(zone: CombatZone): Promise<NativeImage | null> {
+async function captureZoneImage(
+  zone: CombatZone,
+  maxZonePx?: number
+): Promise<NativeImage | null> {
   try {
     const display = screen.getDisplayMatching({
       x: zone.x,
@@ -46,23 +56,34 @@ async function captureZoneImage(zone: CombatZone): Promise<NativeImage | null> {
       width: zone.width,
       height: zone.height
     })
-    const scale = display.scaleFactor
+    const native = display.scaleFactor
+    // Échelle effective de la miniature par rapport aux coordonnées logiques.
+    let scale = native
+    if (maxZonePx !== undefined && zone.width > 0 && zone.height > 0) {
+      const needed = Math.max(maxZonePx / zone.width, maxZonePx / zone.height)
+      scale = Math.min(native, Math.max(0.05, needed))
+    }
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: {
-        width: Math.round(display.size.width * scale),
-        height: Math.round(display.size.height * scale)
+        width: Math.max(1, Math.round(display.size.width * scale)),
+        height: Math.max(1, Math.round(display.size.height * scale))
       }
     })
     const source =
       sources.find((s) => s.display_id === String(display.id)) ?? sources[0]
     if (!source) return null
 
+    // La miniature peut différer légèrement de la taille demandée : on déduit
+    // l'échelle réelle de sa taille effective.
+    const thumb = source.thumbnail.getSize()
+    const sx = thumb.width / display.size.width
+    const sy = thumb.height / display.size.height
     return source.thumbnail.crop({
-      x: Math.round((zone.x - display.bounds.x) * scale),
-      y: Math.round((zone.y - display.bounds.y) * scale),
-      width: Math.round(zone.width * scale),
-      height: Math.round(zone.height * scale)
+      x: Math.round((zone.x - display.bounds.x) * sx),
+      y: Math.round((zone.y - display.bounds.y) * sy),
+      width: Math.max(1, Math.round(zone.width * sx)),
+      height: Math.max(1, Math.round(zone.height * sy))
     })
   } catch {
     return null
@@ -71,10 +92,11 @@ async function captureZoneImage(zone: CombatZone): Promise<NativeImage | null> {
 
 /**
  * Capture la zone et retourne ses pixels BGRA normalisés (32×32) pour la
- * signature, ou null si la capture échoue.
+ * signature, ou null si la capture échoue. Capture réduite (voir
+ * captureZoneImage) : la signature n'a besoin que de GRID*4 px de côté.
  */
 async function captureZone(zone: CombatZone): Promise<Buffer | null> {
-  const crop = await captureZoneImage(zone)
+  const crop = await captureZoneImage(zone, GRID * 8)
   if (!crop) return null
   // Normalise la taille : la signature est indépendante de la résolution.
   return crop.resize({ width: GRID * 4, height: GRID * 4 }).toBitmap()

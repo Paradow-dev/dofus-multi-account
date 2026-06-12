@@ -74,7 +74,11 @@ function createWindow(): void {
     win = null
   })
 
-  win.webContents.on('did-finish-load', () => pushData())
+  win.webContents.on('did-finish-load', () => {
+    // Nouveau document : l'instantané précédent ne le décrit plus.
+    lastPushedJson = ''
+    pushData()
+  })
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
@@ -85,6 +89,9 @@ function createWindow(): void {
 
   win.once('ready-to-show', () => win?.showInactive())
 }
+
+/** Dernier instantané envoyé au renderer (évite IPC + re-rendu sans changement). */
+let lastPushedJson = ''
 
 /** Construit la liste des comptes + états et la pousse au renderer. */
 function pushData(): void {
@@ -105,6 +112,11 @@ function pushData(): void {
       active: a.id === activeAccountId,
       detected: detected.has(a.id)
     }))
+  // Rien n'a changé depuis le dernier envoi (cas le plus fréquent du
+  // rafraîchissement périodique) : pas d'IPC, pas de re-rendu de l'overlay.
+  const json = JSON.stringify(items)
+  if (json === lastPushedJson) return
+  lastPushedJson = json
   win.webContents.send(IPC.accountBarData, items)
 }
 
