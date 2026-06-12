@@ -71,7 +71,7 @@ const state: State = {
       betweenAccountsMs: 600,
       opacity: 0.95
     },
-    hideOverlaysOutsideGame: true
+    hideOverlaysOutsideGame: false
   },
   windows: [],
   registrations: [],
@@ -845,7 +845,7 @@ function accountBarSection(): (Node | null)[] {
 function renderOverlays(): HTMLElement {
   const hideToggle = renderSwitch(
     'Masquer les overlays hors du jeu',
-    state.config.hideOverlaysOutsideGame ?? true,
+    state.config.hideOverlaysOutsideGame ?? false,
     (v) => {
       state.config.hideOverlaysOutsideGame = v
       void save()

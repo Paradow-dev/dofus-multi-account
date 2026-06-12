@@ -319,7 +319,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     betweenAccountsMs: 600,
     opacity: 0.95
   },
-  hideOverlaysOutsideGame: true
+  hideOverlaysOutsideGame: false
 }
 
 /** API exposée au renderer via contextBridge (window.api). */
