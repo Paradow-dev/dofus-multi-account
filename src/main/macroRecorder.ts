@@ -1,22 +1,32 @@
 /**
  * Enregistreur de la macro rapide : hooks bas-niveau dédiés (WH_KEYBOARD_LL +
  * WH_MOUSE_LL via koffi, même architecture que keyboardHook.ts / mouseHook.ts,
- * avec sa propre pompe de messages) capturant touches (down/up) et clics
- * gauche/droit, avec le délai entre chaque événement (plafonné à 2000 ms).
+ * avec sa propre pompe de messages) capturant :
+ * - les touches (down/up) — y compris les modificateurs, ce qui permet les
+ *   combinaisons Ctrl+clic, Échap, etc. ;
+ * - les boutons souris gauche/droit/milieu en down/up SÉPARÉS (drags possibles) ;
+ * - la molette (delta) ;
+ * - les MOUVEMENTS de la souris, échantillonnés à ~60 Hz, à partir du premier
+ *   clic (avant le premier clic, seuls touches/clics sont capturés) — pour
+ *   reproduire fidèlement la trajectoire à la lecture.
  *
- * Les positions de clic sont stockées en ratios relatifs aux bounds de la
- * fenêtre Dofus active au début de l'enregistrement, pour être rejouées sur
- * des fenêtres de géométrie différente.
+ * Les positions sont stockées en ratios relatifs aux bounds de la fenêtre
+ * Dofus active au début de l'enregistrement, pour être rejouées sur des
+ * fenêtres de géométrie différente. Le délai entre chaque événement est
+ * mémorisé (plafonné à 2000 ms).
  *
  * Les événements ne sont JAMAIS consommés (CallNextHookEx systématique) : le
  * jeu les reçoit normalement pendant l'enregistrement. Filtres appliqués :
  * - la touche F12 (stop, down ET up) n'est jamais enregistrée ;
  * - les codes de `ignoreVks` (touche finale du raccourci de bascule) non plus ;
  * - les événements injectés (SendInput — lecture de macro) sont ignorés ;
- * - les clics sur nos propres fenêtres (panneau macro, réglages…) sont ignorés.
+ * - les clics/mouvements sur nos propres fenêtres (panneau macro, réglages…)
+ *   sont ignorés (rects mis en cache, rafraîchis par la pompe : pas d'appel
+ *   Electron dans le chemin chaud du hook) ;
+ * - en PAUSE, rien n'est capturé (le chrono est suspendu).
  *
- * À l'arrêt, la séquence est assainie : keyups orphelins et keydowns sans
- * keyup correspondant (modificateurs « collés » au moment du stop) sont retirés.
+ * À l'arrêt, la séquence est assainie : keyups/mouseups orphelins et
+ * keydowns/mousedowns sans relâchement correspondant sont retirés.
  */
 
 import { BrowserWindow } from 'electron'
@@ -28,16 +38,42 @@ export interface MacroKeyEvent {
   delay: number
 }
 
-export interface MacroClickEvent {
-  kind: 'click'
-  button: 'left' | 'right'
-  /** Position du clic en ratio (0-1) des bounds de la fenêtre d'enregistrement. */
+export type MacroMouseButton = 'left' | 'right' | 'middle'
+
+export interface MacroButtonEvent {
+  kind: 'mousedown' | 'mouseup'
+  button: MacroMouseButton
+  /** Position en ratio (0-1) des bounds de la fenêtre d'enregistrement. */
   xRatio: number
   yRatio: number
   delay: number
 }
 
-export type MacroEvent = MacroKeyEvent | MacroClickEvent
+export interface MacroMoveEvent {
+  kind: 'move'
+  xRatio: number
+  yRatio: number
+  delay: number
+}
+
+export interface MacroWheelEvent {
+  kind: 'wheel'
+  /** Delta molette signé (multiples de 120 = WHEEL_DELTA). */
+  delta: number
+  xRatio: number
+  yRatio: number
+  delay: number
+}
+
+export type MacroEvent = MacroKeyEvent | MacroButtonEvent | MacroMoveEvent | MacroWheelEvent
+
+/** Compteurs par type d'événement, remontés à l'UI. */
+export interface RecorderCounts {
+  total: number
+  keys: number
+  clicks: number
+  moves: number
+}
 
 export interface RecorderBounds {
   x: number
@@ -47,12 +83,12 @@ export interface RecorderBounds {
 }
 
 export interface RecorderOptions {
-  /** Bounds de la fenêtre de référence (conversion des clics en ratios). */
+  /** Bounds de la fenêtre de référence (conversion des positions en ratios). */
   bounds: RecorderBounds
   /** Codes virtuels à ignorer (touche finale du raccourci de bascule). */
   ignoreVks: Set<number>
-  /** Appelé après chaque événement capturé (compteur + durée), hors du hook. */
-  onEvent: (count: number, durationMs: number) => void
+  /** Appelé au plus toutes les NOTIFY_MS (compteurs + durée), hors du hook. */
+  onEvent: (counts: RecorderCounts, durationMs: number) => void
   /** Appelé quand l'enregistrement doit s'arrêter (F12 ou plafond atteint). */
   onStop: () => void
 }
@@ -60,7 +96,13 @@ export interface RecorderOptions {
 /** Plafond du délai mémorisé entre deux événements (ms). */
 const MAX_DELAY_MS = 2000
 /** Nombre maximal d'événements enregistrés (arrêt automatique au-delà). */
-const MAX_EVENTS = 500
+const MAX_EVENTS = 10000
+/** Période d'échantillonnage des mouvements de souris (~60 Hz). */
+const MOVE_SAMPLE_MS = 16
+/** Période minimale entre deux notifications onEvent (UI). */
+const NOTIFY_MS = 100
+/** Période de rafraîchissement du cache des rects de nos fenêtres. */
+const OWN_RECTS_REFRESH_MS = 500
 
 const WH_KEYBOARD_LL = 13
 const WH_MOUSE_LL = 14
@@ -68,8 +110,14 @@ const WM_KEYDOWN = 0x0100
 const WM_KEYUP = 0x0101
 const WM_SYSKEYDOWN = 0x0104
 const WM_SYSKEYUP = 0x0105
+const WM_MOUSEMOVE = 0x0200
 const WM_LBUTTONDOWN = 0x0201
+const WM_LBUTTONUP = 0x0202
 const WM_RBUTTONDOWN = 0x0204
+const WM_RBUTTONUP = 0x0205
+const WM_MBUTTONDOWN = 0x0207
+const WM_MBUTTONUP = 0x0208
+const WM_MOUSEWHEEL = 0x020a
 const PM_REMOVE = 0x0001
 const VK_F12 = 0x7b
 /** KBDLLHOOKSTRUCT.flags : événement injecté (SendInput). */
@@ -77,17 +125,41 @@ const LLKHF_INJECTED = 0x10
 /** MSLLHOOKSTRUCT.flags : événement injecté (SendInput). */
 const LLMHF_INJECTED = 0x01
 
+const BUTTON_BY_MSG: Record<number, { button: MacroMouseButton; down: boolean }> = {
+  [WM_LBUTTONDOWN]: { button: 'left', down: true },
+  [WM_LBUTTONUP]: { button: 'left', down: false },
+  [WM_RBUTTONDOWN]: { button: 'right', down: true },
+  [WM_RBUTTONUP]: { button: 'right', down: false },
+  [WM_MBUTTONDOWN]: { button: 'middle', down: true },
+  [WM_MBUTTONUP]: { button: 'middle', down: false }
+}
+
 type Fn = (...args: unknown[]) => unknown
 
 let koffi: typeof import('koffi') | null = null
 let recording = false
+let paused = false
 let events: MacroEvent[] = []
 let startedAt = 0
 let lastEventAt = 0
+/** Temps total passé en pause (exclu de la durée affichée). */
+let pausedAccumMs = 0
+let pausedAt = 0
 let opts: RecorderOptions | null = null
 let pumpTimer: NodeJS.Timeout | null = null
-/** Notification onEvent en attente (coalescée hors de la pile du hook). */
-let notifyScheduled = false
+/** Compteurs incrémentaux (évite de re-parcourir `events` à chaque notification). */
+let counts: RecorderCounts = { total: 0, keys: 0, clicks: 0, moves: 0 }
+/** Les mouvements ne sont capturés qu'à partir du premier clic. */
+let movesArmed = false
+let lastMoveAt = 0
+/** Horodatage de la dernière notification onEvent (throttle UI). */
+let lastNotifyAt = 0
+let notifyTimer: NodeJS.Timeout | null = null
+/** Rects de nos propres fenêtres, mis en cache (pas d'appel Electron dans le hook). */
+let ownRects: RecorderBounds[] = []
+let pumpTicks = 0
+/** Buffer MSG unique de la pompe (pas d'allocation toutes les 5 ms). */
+const pumpMsgBuf = Buffer.alloc(64)
 
 // Callbacks koffi enregistrés UNE SEULE FOIS et réutilisés à chaque session :
 // koffi.register sans unregister fuit, et les hooks sont posés/retirés souvent.
@@ -123,32 +195,53 @@ function nextDelay(): number {
   return delay
 }
 
-/** true si le point écran tombe sur une de nos propres fenêtres visibles. */
-function isOwnWindowPoint(px: number, py: number): boolean {
+/** Durée d'enregistrement effective (pauses exclues). */
+function effectiveDuration(): number {
+  const pausedNow = paused ? Date.now() - pausedAt : 0
+  return Math.max(0, Date.now() - startedAt - pausedAccumMs - pausedNow)
+}
+
+/** Recharge le cache des rects de nos fenêtres visibles (hors chemin du hook). */
+function refreshOwnRects(): void {
   try {
+    const rects: RecorderBounds[] = []
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isVisible()) continue
-      const b = win.getBounds()
-      if (px >= b.x && px < b.x + b.width && py >= b.y && py < b.y + b.height) return true
+      rects.push(win.getBounds())
     }
+    ownRects = rects
   } catch {
     /* ignore */
+  }
+}
+
+/** true si le point écran tombe sur une de nos propres fenêtres (cache). */
+function isOwnWindowPoint(px: number, py: number): boolean {
+  for (const b of ownRects) {
+    if (px >= b.x && px < b.x + b.width && py >= b.y && py < b.y + b.height) return true
   }
   return false
 }
 
+/** Notifie l'UI au plus toutes les NOTIFY_MS (coalescé, hors pile du hook). */
+function scheduleNotify(): void {
+  if (notifyTimer) return
+  const wait = Math.max(0, NOTIFY_MS - (Date.now() - lastNotifyAt))
+  notifyTimer = setTimeout(() => {
+    notifyTimer = null
+    lastNotifyAt = Date.now()
+    if (recording && opts) opts.onEvent({ ...counts }, effectiveDuration())
+  }, wait)
+}
+
 function pushEvent(ev: MacroEvent): void {
-  if (!recording || !opts) return
+  if (!recording || paused || !opts) return
   events.push(ev)
-  // Pas de travail lourd (IPC, rendu) dans la pile du hook : la notification
-  // est différée et coalescée via setImmediate.
-  if (!notifyScheduled) {
-    notifyScheduled = true
-    setImmediate(() => {
-      notifyScheduled = false
-      if (recording && opts) opts.onEvent(events.length, Date.now() - startedAt)
-    })
-  }
+  counts.total = events.length
+  if (ev.kind === 'keydown') counts.keys++
+  else if (ev.kind === 'mousedown') counts.clicks++
+  else if (ev.kind === 'move') counts.moves++
+  scheduleNotify()
   if (events.length >= MAX_EVENTS) {
     // Plafond atteint : on demande l'arrêt hors de la pile du hook.
     setImmediate(() => opts?.onStop())
@@ -169,9 +262,9 @@ function keyProcImpl(nCode: number, wParam: number, lParam: unknown): number {
       if ((flags & LLKHF_INJECTED) === 0) {
         if (vk === VK_F12) {
           // F12 = stop : ni le down ni le up ne sont enregistrés,
-          // arrêt différé hors de la pile du hook.
+          // arrêt différé hors de la pile du hook. Fonctionne aussi en pause.
           if (isDown) setImmediate(() => opts?.onStop())
-        } else if ((isDown || isUp) && !opts.ignoreVks.has(vk)) {
+        } else if (!paused && (isDown || isUp) && !opts.ignoreVks.has(vk)) {
           pushEvent({ kind: isDown ? 'keydown' : 'keyup', vk, delay: nextDelay() })
         }
       }
@@ -182,29 +275,53 @@ function keyProcImpl(nCode: number, wParam: number, lParam: unknown): number {
   return Number(CallNextHookEx!(null, nCode, wParam, lParam))
 }
 
-// --- Hook souris : capture les clics gauche/droit (position → ratios). ---
+// --- Hook souris : boutons down/up, molette et mouvements (position → ratios). ---
 function mouseProcImpl(nCode: number, wParam: number, lParam: unknown): number {
   try {
-    if (Number(nCode) >= 0 && recording && opts) {
+    if (Number(nCode) >= 0 && recording && !paused && opts) {
       const msg = Number(wParam)
-      if (msg === WM_LBUTTONDOWN || msg === WM_RBUTTONDOWN) {
+      const isMove = msg === WM_MOUSEMOVE
+      // Échantillonnage des mouvements : seulement après le premier clic, et au
+      // plus un point toutes les MOVE_SAMPLE_MS — le hook reste ultra-léger.
+      if (isMove) {
+        if (!movesArmed) return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+        const now = Date.now()
+        if (now - lastMoveAt < MOVE_SAMPLE_MS) {
+          return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+        }
+        lastMoveAt = now
+      }
+      const btn = BUTTON_BY_MSG[msg]
+      const isWheel = msg === WM_MOUSEWHEEL
+      if (isMove || isWheel || btn) {
         // MSLLHOOKSTRUCT : POINT pt (offsets 0 et 4), mouseData (8), flags (12).
         const px = Number(koffi!.decode(lParam, 0, 'int32'))
         const py = Number(koffi!.decode(lParam, 4, 'int32'))
         const flags = Number(koffi!.decode(lParam, 12, 'uint32'))
-        // Ignore les clics injectés (lecture) et ceux sur nos propres fenêtres
-        // (panneau macro, réglages, overlays…).
+        // Ignore les événements injectés (lecture) et ceux sur nos propres
+        // fenêtres (panneau macro, réglages, overlays…).
         if ((flags & LLMHF_INJECTED) === 0 && !isOwnWindowPoint(px, py)) {
           const b = opts.bounds
-          const xRatio = b.width > 0 ? (px - b.x) / b.width : 0
-          const yRatio = b.height > 0 ? (py - b.y) / b.height : 0
-          pushEvent({
-            kind: 'click',
-            button: msg === WM_LBUTTONDOWN ? 'left' : 'right',
-            xRatio: Math.min(1, Math.max(0, xRatio)),
-            yRatio: Math.min(1, Math.max(0, yRatio)),
-            delay: nextDelay()
-          })
+          const xRatio = b.width > 0 ? Math.min(1, Math.max(0, (px - b.x) / b.width)) : 0
+          const yRatio = b.height > 0 ? Math.min(1, Math.max(0, (py - b.y) / b.height)) : 0
+          if (btn) {
+            if (btn.down) movesArmed = true
+            pushEvent({
+              kind: btn.down ? 'mousedown' : 'mouseup',
+              button: btn.button,
+              xRatio,
+              yRatio,
+              delay: nextDelay()
+            })
+          } else if (isWheel) {
+            // mouseData : delta signé dans le mot de poids fort.
+            const md = Number(koffi!.decode(lParam, 8, 'uint32'))
+            const hi = (md >>> 16) & 0xffff
+            const delta = hi >= 0x8000 ? hi - 0x10000 : hi
+            pushEvent({ kind: 'wheel', delta, xRatio, yRatio, delay: nextDelay() })
+          } else {
+            pushEvent({ kind: 'move', xRatio, yRatio, delay: nextDelay() })
+          }
         }
       }
     }
@@ -249,29 +366,31 @@ function initFfi(): boolean {
 
 /**
  * Assainit la séquence enregistrée :
- * - retire les keyups sans keydown préalable (touche déjà enfoncée au départ) ;
- * - retire les keydowns sans keyup correspondant (modificateurs Ctrl/Alt/Maj
- *   encore enfoncés quand le raccourci de stop est déclenché → touches
- *   « collées » à la lecture).
+ * - retire les keyups/mouseups sans down préalable (déjà enfoncé au départ) ;
+ * - retire les keydowns/mousedowns sans relâchement correspondant
+ *   (modificateurs Ctrl/Alt/Maj ou bouton encore enfoncés quand le stop est
+ *   déclenché → touches/boutons « collés » à la lecture).
  * Le délai des événements retirés est reporté sur l'événement suivant.
  */
 function sanitizeEvents(raw: MacroEvent[]): MacroEvent[] {
   const drop = new Set<number>()
-  /** vk → indices des keydowns encore « ouverts » (sans keyup). */
-  const open = new Map<number, number[]>()
+  /** clé (vk ou bouton) → indices des downs encore « ouverts » (sans up). */
+  const open = new Map<string, number[]>()
+  const keyOf = (ev: MacroEvent): string =>
+    ev.kind === 'keydown' || ev.kind === 'keyup' ? `k${ev.vk}` : `b${(ev as MacroButtonEvent).button}`
   raw.forEach((ev, i) => {
-    if (ev.kind === 'keydown') {
-      const stack = open.get(ev.vk) ?? []
+    if (ev.kind === 'keydown' || ev.kind === 'mousedown') {
+      const stack = open.get(keyOf(ev)) ?? []
       stack.push(i)
-      open.set(ev.vk, stack)
-    } else if (ev.kind === 'keyup') {
-      const stack = open.get(ev.vk)
+      open.set(keyOf(ev), stack)
+    } else if (ev.kind === 'keyup' || ev.kind === 'mouseup') {
+      const stack = open.get(keyOf(ev))
       if (stack && stack.length > 0) stack.pop()
-      else drop.add(i) // keyup orphelin
+      else drop.add(i) // up orphelin
     }
   })
   for (const stack of open.values()) {
-    for (const i of stack) drop.add(i) // keydown jamais relâché
+    for (const i of stack) drop.add(i) // down jamais relâché
   }
   if (drop.size === 0) return raw
 
@@ -288,6 +407,17 @@ function sanitizeEvents(raw: MacroEvent[]): MacroEvent[] {
   return out
 }
 
+/** Compteurs par type d'une séquence (après assainissement). */
+export function countEvents(seq: MacroEvent[]): RecorderCounts {
+  const c: RecorderCounts = { total: seq.length, keys: 0, clicks: 0, moves: 0 }
+  for (const ev of seq) {
+    if (ev.kind === 'keydown') c.keys++
+    else if (ev.kind === 'mousedown') c.clicks++
+    else if (ev.kind === 'move') c.moves++
+  }
+  return c
+}
+
 /**
  * Démarre l'enregistrement. Retourne false si les hooks n'ont pas pu être
  * installés (hors Windows, koffi indisponible…).
@@ -300,8 +430,15 @@ export function startMacroRecording(options: RecorderOptions): boolean {
   try {
     opts = options
     events = []
+    counts = { total: 0, keys: 0, clicks: 0, moves: 0 }
     startedAt = Date.now()
     lastEventAt = startedAt
+    paused = false
+    pausedAccumMs = 0
+    movesArmed = false
+    lastMoveAt = 0
+    lastNotifyAt = 0
+    refreshOwnRects()
 
     const hInst = GetModuleHandleW!(null)
     keyHookHandle = SetWindowsHookExW!(WH_KEYBOARD_LL, keyProcCb, hInst, 0)
@@ -309,14 +446,16 @@ export function startMacroRecording(options: RecorderOptions): boolean {
     mouseHookHandle = SetWindowsHookExW!(WH_MOUSE_LL, mouseProcCb, hInst, 0)
     if (!mouseHookHandle) throw new Error('SetWindowsHookExW (souris) a échoué')
 
-    // Pompe de messages : requise pour les hooks bas-niveau.
+    // Pompe de messages : requise pour les hooks bas-niveau. Rafraîchit aussi
+    // périodiquement le cache des rects de nos fenêtres.
+    pumpTicks = 0
     pumpTimer = setInterval(() => {
       try {
-        const msg = Buffer.alloc(64)
         let guard = 0
-        while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
+        while (PeekMessageW!(pumpMsgBuf, null, 0, 0, PM_REMOVE) && guard++ < 16) {
           /* draine la file */
         }
+        if (++pumpTicks % Math.round(OWN_RECTS_REFRESH_MS / 5) === 0) refreshOwnRects()
       } catch {
         /* ignore */
       }
@@ -332,16 +471,50 @@ export function startMacroRecording(options: RecorderOptions): boolean {
   }
 }
 
+/** Suspend la capture (le chrono est gelé, rien n'est enregistré). */
+export function pauseMacroRecording(): void {
+  if (!recording || paused) return
+  paused = true
+  pausedAt = Date.now()
+}
+
+/** Reprend la capture après une pause (le temps de pause n'est pas compté). */
+export function resumeMacroRecording(): void {
+  if (!recording || !paused) return
+  pausedAccumMs += Date.now() - pausedAt
+  paused = false
+  // Le délai du prochain événement repart de maintenant (pas de trou géant —
+  // de toute façon plafonné à MAX_DELAY_MS).
+  lastEventAt = Date.now()
+}
+
+export function isMacroRecordingPaused(): boolean {
+  return paused
+}
+
+/** Durée effective (pauses exclues) du dernier enregistrement arrêté. */
+let lastDurationMs = 0
+
+export function getLastRecordingDuration(): number {
+  return lastDurationMs
+}
+
 /**
  * Arrête l'enregistrement (désinstalle les hooks) et retourne les événements
  * assainis (cf. sanitizeEvents). Les callbacks koffi restent enregistrés pour
  * la session suivante.
  */
 export function stopMacroRecording(): MacroEvent[] {
+  if (recording) lastDurationMs = effectiveDuration()
   recording = false
+  paused = false
   if (pumpTimer) {
     clearInterval(pumpTimer)
     pumpTimer = null
+  }
+  if (notifyTimer) {
+    clearTimeout(notifyTimer)
+    notifyTimer = null
   }
   try {
     if (keyHookHandle && UnhookWindowsHookEx) UnhookWindowsHookEx(keyHookHandle)

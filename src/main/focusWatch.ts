@@ -17,7 +17,7 @@ import { setBrowserFocusHidden } from './browser'
 import { setMacroBarFocusHidden } from './macroBar'
 
 const POLL_MS = 500
-const REFRESH_HANDLES_MS = 3000
+const REFRESH_HANDLES_MS = 5000
 
 let pollTimer: NodeJS.Timeout | null = null
 let refreshTimer: NodeJS.Timeout | null = null

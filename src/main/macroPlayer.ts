@@ -6,13 +6,14 @@
  * deux layouts koffi de même taille totale : MACRO_INPUT_K (clavier) et
  * MACRO_INPUT_M (souris). SendInput est lié deux fois, une par layout.
  *
- * Les clics sont rejoués en coordonnées absolues normalisées 0-65535
- * (MOUSEEVENTF_ABSOLUTE), calculées à partir des bounds de la fenêtre cible et
- * des ratios enregistrés. La touche Échap (GetAsyncKeyState, sondée entre les
- * événements) interrompt la lecture.
+ * Clics, mouvements et molette sont rejoués en coordonnées absolues
+ * normalisées 0-65535 (MOUSEEVENTF_ABSOLUTE), calculées à partir des bounds de
+ * la fenêtre cible et des ratios enregistrés. Boutons down/up séparés (drags,
+ * Ctrl+clic…). La touche Échap (GetAsyncKeyState, sondée entre les événements)
+ * interrompt la lecture ; la pause suspend sans perdre la position.
  */
 
-import type { MacroEvent, RecorderBounds } from './macroRecorder'
+import type { MacroEvent, MacroMouseButton, RecorderBounds } from './macroRecorder'
 
 const INPUT_MOUSE = 0
 const INPUT_KEYBOARD = 1
@@ -22,8 +23,22 @@ const MOUSEEVENTF_LEFTDOWN = 0x0002
 const MOUSEEVENTF_LEFTUP = 0x0004
 const MOUSEEVENTF_RIGHTDOWN = 0x0008
 const MOUSEEVENTF_RIGHTUP = 0x0010
+const MOUSEEVENTF_MIDDLEDOWN = 0x0020
+const MOUSEEVENTF_MIDDLEUP = 0x0040
+const MOUSEEVENTF_WHEEL = 0x0800
 const MOUSEEVENTF_VIRTUALDESK = 0x4000
 const MOUSEEVENTF_ABSOLUTE = 0x8000
+
+const BUTTON_DOWN_FLAG: Record<MacroMouseButton, number> = {
+  left: MOUSEEVENTF_LEFTDOWN,
+  right: MOUSEEVENTF_RIGHTDOWN,
+  middle: MOUSEEVENTF_MIDDLEDOWN
+}
+const BUTTON_UP_FLAG: Record<MacroMouseButton, number> = {
+  left: MOUSEEVENTF_LEFTUP,
+  right: MOUSEEVENTF_RIGHTUP,
+  middle: MOUSEEVENTF_MIDDLEUP
+}
 // Bureau virtuel (multi-écrans) : origine et taille englobant tous les moniteurs.
 const SM_XVIRTUALSCREEN = 76
 const SM_YVIRTUALSCREEN = 77
@@ -136,7 +151,7 @@ function sendKey(vk: number, up: boolean): void {
   )
 }
 
-function sendMouse(dx: number, dy: number, flags: number): void {
+function sendMouse(dx: number, dy: number, flags: number, mouseData = 0): void {
   SendInputM!(
     1,
     {
@@ -144,7 +159,8 @@ function sendMouse(dx: number, dy: number, flags: number): void {
       pad0: 0,
       dx,
       dy,
-      mouseData: 0,
+      // uint32 côté Win32 : les deltas molette négatifs passent en non signé.
+      mouseData: mouseData >>> 0,
       dwFlags: flags,
       time: 0,
       dwExtraInfo: 0n
@@ -168,54 +184,102 @@ function toAbsolute(px: number, py: number): { ax: number; ay: number } {
   }
 }
 
-/** Rejoue un clic : déplacement absolu, courte pause, bouton down puis up. */
-async function replayClick(
+/** Coordonnées absolues 0-65535 d'une position en ratio des bounds cibles. */
+function ratioToAbsolute(
   xRatio: number,
   yRatio: number,
-  button: 'left' | 'right',
   bounds: RecorderBounds
-): Promise<void> {
+): { ax: number; ay: number } {
   const px = Math.round(bounds.x + xRatio * bounds.width)
   const py = Math.round(bounds.y + yRatio * bounds.height)
-  const { ax, ay } = toAbsolute(px, py)
-  const base = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK
-  sendMouse(ax, ay, MOUSEEVENTF_MOVE | base)
-  await sleep(30)
-  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN) | base)
-  await sleep(20)
-  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP) | base)
+  return toAbsolute(px, py)
+}
+
+export interface ReplayControls {
+  /** Interruption immédiate (Échap, bouton stop, relance…). */
+  isAborted?: () => boolean
+  /** Lecture suspendue : on attend (sans rejouer) tant que c'est vrai. */
+  isPaused?: () => boolean
+  /** Progression dans la séquence (0-1), notifiée au plus toutes les ~100 ms. */
+  onProgress?: (fraction: number) => void
 }
 
 /**
  * Rejoue la séquence d'événements sur la fenêtre cible (bounds = conversion
- * des ratios de clic). Respecte les délais enregistrés ; s'interrompt si Échap
- * est enfoncée ou si `isAborted()` devient vrai.
+ * des ratios). Le timing est corrigé en dérive : chaque événement vise un
+ * horodatage absolu (les centaines de mouvements échantillonnés à ~60 Hz ne
+ * cumulent pas l'imprécision de setTimeout). S'interrompt si Échap est
+ * enfoncée ou si `isAborted()` devient vrai ; se suspend tant que `isPaused()`
+ * est vrai (reprise au prochain événement).
  * Retourne false si la lecture a été interrompue.
  */
 export async function replayEvents(
   events: MacroEvent[],
   bounds: RecorderBounds,
-  isAborted: () => boolean = () => false
+  controls: ReplayControls = {}
 ): Promise<boolean> {
   if (!initFfi()) return false
-  for (const ev of events) {
-    if (ev.delay > 0) await sleep(ev.delay)
+  const isAborted = controls.isAborted ?? ((): boolean => false)
+  const isPaused = controls.isPaused ?? ((): boolean => false)
+  const base = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK
+  /** Horodatage visé de l'événement courant (corrige la dérive de setTimeout). */
+  let nextAt = Date.now()
+  let lastProgressAt = 0
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i]
+    nextAt += ev.delay
+    const wait = nextAt - Date.now()
+    if (wait > 0) await sleep(wait)
     if (isAborted()) return false
+    // Pause : on attend sans rejouer, puis on rebase l'horloge de lecture
+    // (le temps passé en pause ne doit pas être « rattrapé »).
+    if (isPaused()) {
+      while (isPaused() && !isAborted()) await sleep(60)
+      if (isAborted()) return false
+      nextAt = Date.now()
+    }
     // Si la macro contient elle-même un Échap, GetAsyncKeyState ne distingue
     // pas notre injection d'un appui réel : on suspend le contrôle d'abandon
     // pour cet événement et pendant 500 ms après chaque Échap injecté.
-    const isEscapeEvent = ev.kind !== 'click' && ev.vk === VK_ESCAPE
+    const isEscapeEvent = (ev.kind === 'keydown' || ev.kind === 'keyup') && ev.vk === VK_ESCAPE
     const escJustInjected = Date.now() - lastEscapeInjectedAt < 500
     if (!isEscapeEvent && !escJustInjected && escapePressed()) return false
     try {
-      if (ev.kind === 'click') {
-        await replayClick(ev.xRatio, ev.yRatio, ev.button, bounds)
-      } else {
-        sendKey(ev.vk, ev.kind === 'keyup')
+      switch (ev.kind) {
+        case 'keydown':
+        case 'keyup':
+          sendKey(ev.vk, ev.kind === 'keyup')
+          break
+        case 'move': {
+          const { ax, ay } = ratioToAbsolute(ev.xRatio, ev.yRatio, bounds)
+          sendMouse(ax, ay, MOUSEEVENTF_MOVE | base)
+          break
+        }
+        case 'mousedown':
+        case 'mouseup': {
+          // Déplacement + bouton en un seul SendInput : position exacte du clic.
+          const { ax, ay } = ratioToAbsolute(ev.xRatio, ev.yRatio, bounds)
+          const flag =
+            ev.kind === 'mousedown' ? BUTTON_DOWN_FLAG[ev.button] : BUTTON_UP_FLAG[ev.button]
+          sendMouse(ax, ay, MOUSEEVENTF_MOVE | flag | base)
+          break
+        }
+        case 'wheel': {
+          // Replace d'abord le curseur (la molette agit sous le curseur).
+          const { ax, ay } = ratioToAbsolute(ev.xRatio, ev.yRatio, bounds)
+          sendMouse(ax, ay, MOUSEEVENTF_MOVE | base)
+          sendMouse(0, 0, MOUSEEVENTF_WHEEL, ev.delta)
+          break
+        }
       }
     } catch (err) {
       console.warn('[macroPlayer] envoi échoué :', err)
     }
+    if (controls.onProgress && Date.now() - lastProgressAt >= 100) {
+      lastProgressAt = Date.now()
+      controls.onProgress((i + 1) / events.length)
+    }
   }
+  controls.onProgress?.(1)
   return true
 }

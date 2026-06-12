@@ -118,6 +118,12 @@
   margin-bottom: 20px;
 }
 
+/* Aère un contrôle du bloc qui le précède (ex. slider de délai sous la grille
+   des raccourcis de la page Macro rapide). */
+.page-sec > .field.field--gap-top {
+  margin-top: 36px;
+}
+
 /* Sous-titre de section dans une page de réglages. */
 .page-sec > .field-label {
   margin-bottom: 8px;

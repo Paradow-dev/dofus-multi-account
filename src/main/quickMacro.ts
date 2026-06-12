@@ -1,11 +1,15 @@
 /**
- * Macro rapide éphémère — machine à états.
+ * Macro rapide — machine à états.
  *
- * idle → countdown (ticks 1 s) → recording → confirm → replaying → idle.
- * L'utilisateur enregistre une séquence de touches/clics sur son premier compte
- * (macroRecorder), puis la rejoue une fois sur les autres comptes dans l'ordre
- * de cycle (macroPlayer). Rien n'est persisté : la macro est effacée après
- * exécution (ou annulation).
+ * idle → countdown (ticks 1 s) → recording (pausable) → confirm
+ *      → replaying (pausable, relançable) → confirm (macro conservée) → idle (✕).
+ *
+ * L'utilisateur enregistre une séquence touches + souris (clics down/up,
+ * mouvements échantillonnés, molette) sur son premier compte (macroRecorder),
+ * puis la rejoue sur les autres comptes dans l'ordre de cycle (macroPlayer).
+ * Rien n'est persisté sur disque : la macro vit en mémoire et est effacée à
+ * l'annulation (✕) ou à la fermeture — mais elle reste rejouable après une
+ * lecture (retour en confirmation).
  */
 
 import { IPC, type QuickMacroAction, type QuickMacroState } from '@shared/types'
@@ -18,32 +22,43 @@ import { sendMacroBarState, refreshMacroBarVisibility } from './macroBar'
 import {
   startMacroRecording,
   stopMacroRecording,
+  pauseMacroRecording,
+  resumeMacroRecording,
+  getLastRecordingDuration,
+  countEvents,
   type MacroEvent,
-  type RecorderBounds
+  type RecorderBounds,
+  type RecorderCounts
 } from './macroRecorder'
-import { replayEvents, isPlayerAvailable, sleep } from './macroPlayer'
+import { replayEvents, isPlayerAvailable, sleep, type ReplayControls } from './macroPlayer'
 
 /* ---------- État ---------- */
 
 let state: QuickMacroState = { phase: 'idle', eventCount: 0, durationMs: 0 }
 let countdownTimer: NodeJS.Timeout | null = null
-/** Séquence enregistrée (éphémère, jamais persistée). */
+/** Séquence enregistrée (en mémoire uniquement, jamais persistée). */
 let recordedEvents: MacroEvent[] = []
+/** Compteurs par type de la séquence assainie. */
+let recordedCounts: RecorderCounts = { total: 0, keys: 0, clicks: 0, moves: 0 }
+/** Durée effective de l'enregistrement (pauses exclues). */
+let recordedDurationMs = 0
 /** Bounds de la fenêtre de référence pendant l'enregistrement. */
 let recordingBounds: RecorderBounds = { x: 0, y: 0, width: 1920, height: 1080 }
 /** Compte sur lequel la macro a été enregistrée (exclu de la lecture « tous »). */
 let recordingAccountId: string | undefined
 /** HWND de la fenêtre d'enregistrement (exclusion même sans compte réconcilié). */
 let recordingHandle: number | undefined
-/** Drapeau d'interruption de la lecture (Échap / annulation). */
+/** Drapeaux de contrôle de la lecture (Échap / stop / pause / relance). */
 let replayAborted = false
+let replayPaused = false
+let replayRestart = false
 
 export function getQuickMacroState(): QuickMacroState {
   return state
 }
 
 /**
- * Diffuse l'état : le panneau macro reçoit toutes les mises à jour (compteur
+ * Diffuse l'état : le panneau macro reçoit toutes les mises à jour (compteurs
  * REC, progression), les autres fenêtres seulement les changements de phase
  * (évite le fan-out IPC à chaque frappe enregistrée).
  */
@@ -58,7 +73,7 @@ function setState(next: QuickMacroState): void {
   }
 }
 
-/** Retour au repos : la macro est effacée (éphémère). */
+/** Retour au repos : la macro est effacée. */
 function reset(): void {
   if (countdownTimer) {
     clearInterval(countdownTimer)
@@ -66,9 +81,31 @@ function reset(): void {
   }
   stopMacroRecording()
   recordedEvents = []
+  recordedCounts = { total: 0, keys: 0, clicks: 0, moves: 0 }
+  recordedDurationMs = 0
   recordingAccountId = undefined
   recordingHandle = undefined
+  replayPaused = false
+  replayRestart = false
   setState({ phase: 'idle', eventCount: 0, durationMs: 0 })
+}
+
+/** Passe (ou repasse) en confirmation : la macro reste rejouable. */
+function setConfirm(): void {
+  const accounts = getConfig().accounts
+  const hasRecorded = recordingAccountId
+    ? accounts.some((a) => a.id === recordingAccountId)
+    : false
+  const otherCount = Math.max(0, accounts.length - (hasRecorded ? 1 : 0))
+  setState({
+    phase: 'confirm',
+    eventCount: recordedCounts.total,
+    durationMs: recordedDurationMs,
+    keyCount: recordedCounts.keys,
+    clickCount: recordedCounts.clicks,
+    moveCount: recordedCounts.moves,
+    otherCount
+  })
 }
 
 /* ---------- Enregistrement ---------- */
@@ -114,7 +151,7 @@ function startCountdown(): void {
 
 function startRecording(): void {
   const cfg = getConfig()
-  // Fenêtre de référence : la fenêtre Dofus au premier plan (clics en ratios).
+  // Fenêtre de référence : la fenêtre Dofus au premier plan (positions en ratios).
   // À défaut, on garde les derniers bounds connus (écran complet par défaut).
   const fg = foregroundDofusWindow()
   if (fg) {
@@ -137,9 +174,16 @@ function startRecording(): void {
   const ok = startMacroRecording({
     bounds: recordingBounds,
     ignoreVks,
-    onEvent: (count, durationMs) => {
+    onEvent: (counts, durationMs) => {
       if (state.phase !== 'recording') return
-      setState({ ...state, eventCount: count, durationMs })
+      setState({
+        ...state,
+        eventCount: counts.total,
+        durationMs,
+        keyCount: counts.keys,
+        clickCount: counts.clicks,
+        moveCount: counts.moves
+      })
     },
     onStop: () => finishRecording()
   })
@@ -149,7 +193,14 @@ function startRecording(): void {
     reset()
     return
   }
-  setState({ phase: 'recording', eventCount: 0, durationMs: 0 })
+  setState({
+    phase: 'recording',
+    eventCount: 0,
+    durationMs: 0,
+    keyCount: 0,
+    clickCount: 0,
+    moveCount: 0
+  })
 }
 
 /** Arrête l'enregistrement et passe en confirmation (ou repos si vide). */
@@ -160,26 +211,26 @@ function finishRecording(): void {
     reset()
     return
   }
-  const accounts = getConfig().accounts
-  const hasRecorded = recordingAccountId
-    ? accounts.some((a) => a.id === recordingAccountId)
-    : false
-  const otherCount = Math.max(0, accounts.length - (hasRecorded ? 1 : 0))
-  setState({
-    phase: 'confirm',
-    eventCount: recordedEvents.length,
-    durationMs: state.durationMs,
-    otherCount
-  })
+  recordedCounts = countEvents(recordedEvents)
+  recordedDurationMs = getLastRecordingDuration()
+  setConfirm()
 }
 
 /* ---------- Lecture ---------- */
+
+/** Contrôles de lecture passés au player (pause / abandon / relance). */
+function replayControls(onProgress: (fraction: number) => void): ReplayControls {
+  return {
+    isAborted: () => replayAborted || replayRestart,
+    isPaused: () => replayPaused,
+    onProgress
+  }
+}
 
 /** Rejoue la macro sur tous les autres comptes, dans l'ordre de cycle. */
 async function replayAll(): Promise<void> {
   const cfg = getConfig()
   const events = recordedEvents
-  const durationMs = state.durationMs
   // Une seule énumération : compte → handle (les bounds sont rafraîchis par
   // fenêtre, après mise au premier plan, via boundsForHandle).
   const handleByAccount = new Map<string, number>()
@@ -207,53 +258,76 @@ async function replayAll(): Promise<void> {
     console.warn(
       `[quickMacro] lecture annulée : ${targets.length === 0 ? 'aucun compte cible' : 'SendInput indisponible'}`
     )
-    reset()
+    setConfirm()
     return
   }
 
   replayAborted = false
-  for (let i = 0; i < targets.length; i++) {
-    const account = targets[i]
-    setState({
-      phase: 'replaying',
-      eventCount: events.length,
-      durationMs,
-      replayIndex: i + 1,
-      replayTotal: targets.length,
-      replayLabel: account.label
-    })
-    // Met la fenêtre du compte au premier plan (disposition habituelle).
-    if (!activateAccount(cfg, account.id)) continue
-    await sleep(cfg.quickMacro.betweenAccountsMs)
-    if (replayAborted) break
-    // Bounds frais de la fenêtre cible (conversion des ratios de clic).
-    // Fenêtre disparue : on saute ce compte plutôt que de rejouer à l'aveugle.
-    const handle = handleByAccount.get(account.id)
-    const bounds = handle !== undefined ? boundsForHandle(handle) : null
-    if (!bounds) continue
-    const done = await replayEvents(events, bounds, () => replayAborted)
-    if (!done) break
-  }
-  reset()
+  replayPaused = false
+  // Boucle de relance : « Recommencer » interrompt la lecture courante et
+  // repart du premier compte.
+  do {
+    replayRestart = false
+    for (let i = 0; i < targets.length; i++) {
+      const account = targets[i]
+      const progressBase = i / targets.length
+      const setProgress = (fraction: number): void => {
+        if (state.phase !== 'replaying') return
+        setState({
+          ...state,
+          progressPct: Math.round((progressBase + fraction / targets.length) * 100)
+        })
+      }
+      setState({
+        phase: 'replaying',
+        paused: replayPaused,
+        eventCount: events.length,
+        durationMs: recordedDurationMs,
+        replayIndex: i + 1,
+        replayTotal: targets.length,
+        replayLabel: account.label,
+        progressPct: Math.round(progressBase * 100)
+      })
+      // Met la fenêtre du compte au premier plan (disposition habituelle).
+      if (!activateAccount(cfg, account.id)) continue
+      await sleep(cfg.quickMacro.betweenAccountsMs)
+      if (replayAborted || replayRestart) break
+      // Bounds frais de la fenêtre cible (conversion des ratios).
+      // Fenêtre disparue : on saute ce compte plutôt que de rejouer à l'aveugle.
+      const handle = handleByAccount.get(account.id)
+      const bounds = handle !== undefined ? boundsForHandle(handle) : null
+      if (!bounds) continue
+      const done = await replayEvents(events, bounds, replayControls(setProgress))
+      if (!done) break
+    }
+  } while (replayRestart && !replayAborted)
+  // La macro est conservée : retour en confirmation (✕ pour l'effacer).
+  replayPaused = false
+  setConfirm()
 }
 
 /** Rejoue la macro une seule fois, sur la fenêtre actuellement au premier plan. */
 async function replayActive(): Promise<void> {
   const cfg = getConfig()
   const events = recordedEvents
-  const durationMs = state.durationMs
   if (!isPlayerAvailable()) {
-    reset()
+    setConfirm()
     return
   }
   replayAborted = false
+  replayPaused = false
+  const setProgress = (fraction: number): void => {
+    if (state.phase !== 'replaying') return
+    setState({ ...state, progressPct: Math.round(fraction * 100) })
+  }
   setState({
     phase: 'replaying',
     eventCount: events.length,
-    durationMs,
+    durationMs: recordedDurationMs,
     replayIndex: 1,
     replayTotal: 1,
-    replayLabel: 'Compte actif'
+    replayLabel: 'Compte actif',
+    progressPct: 0
   })
   // Cible : la fenêtre Dofus au premier plan. À défaut (panneau cliqué alors
   // qu'une autre application a le focus), on rabat sur le compte
@@ -275,11 +349,16 @@ async function replayActive(): Promise<void> {
   }
   if (!target) {
     console.warn('[quickMacro] lecture annulée : aucune fenêtre Dofus cible au premier plan')
-    reset()
+    setConfirm()
     return
   }
-  await replayEvents(events, target.bounds, () => replayAborted)
-  reset()
+  do {
+    replayRestart = false
+    const done = await replayEvents(events, target.bounds, replayControls(setProgress))
+    if (!done && !replayRestart) break
+  } while (replayRestart && !replayAborted)
+  replayPaused = false
+  setConfirm()
 }
 
 /* ---------- Entrées ---------- */
@@ -312,7 +391,32 @@ export function handleQuickMacroAction(action: QuickMacroAction): void {
       if (state.phase === 'idle') startCountdown()
       break
     case 'stop':
-      finishRecording()
+      if (state.phase === 'recording') finishRecording()
+      else if (state.phase === 'replaying') replayAborted = true
+      break
+    case 'pause':
+      if (state.phase === 'recording') {
+        pauseMacroRecording()
+        setState({ ...state, paused: true })
+      } else if (state.phase === 'replaying') {
+        replayPaused = true
+        setState({ ...state, paused: true })
+      }
+      break
+    case 'resume':
+      if (state.phase === 'recording') {
+        resumeMacroRecording()
+        setState({ ...state, paused: false })
+      } else if (state.phase === 'replaying') {
+        replayPaused = false
+        setState({ ...state, paused: false })
+      }
+      break
+    case 'restart':
+      if (state.phase === 'replaying') {
+        replayRestart = true
+        replayPaused = false
+      }
       break
     case 'apply-all':
       if (state.phase === 'confirm') void replayAll()
@@ -334,6 +438,7 @@ export function handleQuickMacroAction(action: QuickMacroAction): void {
  */
 export function cancelQuickMacro(): void {
   replayAborted = true
+  replayPaused = false
   reset()
 }
 
