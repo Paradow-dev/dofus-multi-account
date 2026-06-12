@@ -14,6 +14,7 @@
  */
 
 import type { MacroEvent, MacroMouseButton, RecorderBounds } from './macroRecorder'
+import { requestHighResTimers, releaseHighResTimers } from './timerRes'
 
 const INPUT_MOUSE = 0
 const INPUT_KEYBOARD = 1
@@ -222,6 +223,25 @@ export async function replayEvents(
   const isAborted = controls.isAborted ?? ((): boolean => false)
   const isPaused = controls.isPaused ?? ((): boolean => false)
   const base = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK
+  // Résolution timer 1 ms le temps de la lecture : sans elle, chaque sleep
+  // entre deux mouvements (~8 ms enregistrés) est arrondi à ~15,6 ms et le
+  // curseur avance par à-coups.
+  requestHighResTimers()
+  try {
+    return await replayLoop(events, bounds, controls, isAborted, isPaused, base)
+  } finally {
+    releaseHighResTimers()
+  }
+}
+
+async function replayLoop(
+  events: MacroEvent[],
+  bounds: RecorderBounds,
+  controls: ReplayControls,
+  isAborted: () => boolean,
+  isPaused: () => boolean,
+  base: number
+): Promise<boolean> {
   /** Horodatage visé de l'événement courant (corrige la dérive de setTimeout). */
   let nextAt = Date.now()
   let lastProgressAt = 0

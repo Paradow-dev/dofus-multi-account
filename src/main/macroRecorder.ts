@@ -30,6 +30,7 @@
  */
 
 import { BrowserWindow } from 'electron'
+import { requestHighResTimers, releaseHighResTimers } from './timerRes'
 
 export interface MacroKeyEvent {
   kind: 'keydown' | 'keyup'
@@ -97,8 +98,10 @@ export interface RecorderOptions {
 const MAX_DELAY_MS = 2000
 /** Nombre maximal d'événements enregistrés (arrêt automatique au-delà). */
 const MAX_EVENTS = 10000
-/** Période d'échantillonnage des mouvements de souris (~60 Hz). */
-const MOVE_SAMPLE_MS = 16
+/** Période d'échantillonnage des mouvements de souris (~125 Hz). */
+const MOVE_SAMPLE_MS = 8
+/** Période de la pompe de messages (latence ajoutée à chaque entrée système). */
+const PUMP_MS = 1
 /** Période minimale entre deux notifications onEvent (UI). */
 const NOTIFY_MS = 100
 /** Période de rafraîchissement du cache des rects de nos fenêtres. */
@@ -446,8 +449,11 @@ export function startMacroRecording(options: RecorderOptions): boolean {
     mouseHookHandle = SetWindowsHookExW!(WH_MOUSE_LL, mouseProcCb, hInst, 0)
     if (!mouseHookHandle) throw new Error('SetWindowsHookExW (souris) a échoué')
 
-    // Pompe de messages : requise pour les hooks bas-niveau. Rafraîchit aussi
-    // périodiquement le cache des rects de nos fenêtres.
+    // Pompe de messages : requise pour les hooks bas-niveau. Chaque entrée
+    // système attend que ce thread traite le hook : la pompe tourne à 1 ms
+    // (résolution timer demandée ci-dessous) pour une latence minimale.
+    // Rafraîchit aussi périodiquement le cache des rects de nos fenêtres.
+    requestHighResTimers()
     pumpTicks = 0
     pumpTimer = setInterval(() => {
       try {
@@ -455,11 +461,11 @@ export function startMacroRecording(options: RecorderOptions): boolean {
         while (PeekMessageW!(pumpMsgBuf, null, 0, 0, PM_REMOVE) && guard++ < 16) {
           /* draine la file */
         }
-        if (++pumpTicks % Math.round(OWN_RECTS_REFRESH_MS / 5) === 0) refreshOwnRects()
+        if (++pumpTicks % Math.round(OWN_RECTS_REFRESH_MS / PUMP_MS) === 0) refreshOwnRects()
       } catch {
         /* ignore */
       }
-    }, 5)
+    }, PUMP_MS)
 
     recording = true
     console.log('[macroRecorder] enregistrement démarré')
@@ -511,6 +517,7 @@ export function stopMacroRecording(): MacroEvent[] {
   if (pumpTimer) {
     clearInterval(pumpTimer)
     pumpTimer = null
+    releaseHighResTimers()
   }
   if (notifyTimer) {
     clearTimeout(notifyTimer)

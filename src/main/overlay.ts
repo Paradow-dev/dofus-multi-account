@@ -2,6 +2,7 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '@shared/types'
 import { getConfig, updateOverlayPosition, clearOverlayPosition } from './state'
+import { fadeInShow, fadeOutHide, setOpacityNow } from './windowFade'
 
 /**
  * Overlay flottant « nom du personnage actif » :
@@ -90,8 +91,10 @@ function createWindow(): void {
     void win.loadFile(join(__dirname, '../renderer/overlay.html'))
   }
 
-  // showInactive : afficher sans voler le focus au jeu.
-  win.once('ready-to-show', () => win?.showInactive())
+  // Apparition en fondu, sans voler le focus au jeu.
+  win.once('ready-to-show', () => {
+    if (win) fadeInShow(win, getConfig().overlay.opacity)
+  })
 }
 
 function pushCharacter(): void {
@@ -106,10 +109,8 @@ export function syncOverlay(): void {
   const cfg = getConfig().overlay
   if (cfg.enabled) {
     if (!win) createWindow()
-    else {
-      win.setOpacity(cfg.opacity)
-      if (!win.isVisible() && !focusHidden) win.showInactive()
-    }
+    else if (!win.isVisible() && !focusHidden) fadeInShow(win, cfg.opacity)
+    else setOpacityNow(win, cfg.opacity)
   } else {
     destroyOverlay()
   }
@@ -121,8 +122,9 @@ let focusHidden = false
 export function setOverlayFocusHidden(next: boolean): void {
   focusHidden = next
   if (!win) return
-  if (next) win.hide()
-  else if (getConfig().overlay.enabled && !win.isVisible()) win.showInactive()
+  const cfg = getConfig().overlay
+  if (next) fadeOutHide(win, cfg.opacity)
+  else if (cfg.enabled && !win.isVisible()) fadeInShow(win, cfg.opacity)
 }
 
 /** Met à jour le nom de personnage affiché par l'overlay. */

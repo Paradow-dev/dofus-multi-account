@@ -16,6 +16,7 @@
 import { isInCombat, notifyCombatActivity } from './combatState'
 import { cycle, activateAccount } from './shortcuts'
 import { getConfig } from './state'
+import { requestHighResTimers, releaseHighResTimers } from './timerRes'
 import type { DetectedWindow } from '@shared/types'
 
 /** Correspondance touche Electron → code virtuel Windows. */
@@ -50,15 +51,25 @@ let started = false
 let pumpTimer: NodeJS.Timeout | null = null
 let switchTimer: NodeJS.Timeout | null = null
 
+// FFI initialisé UNE SEULE FOIS et réutilisé à chaque session start/stop :
+// koffi.register sans unregister fuit un trampoline natif à chaque appel, et
+// un koffi.proto nommé ne peut pas être re-déclaré (un second init jetterait
+// « type already exists »). Même approche que macroRecorder.ts / mouseHook.ts.
+let ffiReady = false
 let hookProcCb: unknown = null
 let hookHandle: unknown = null
 let flashProcCb: unknown = null
 let flashEventHook: unknown = null
 
+let SetWindowsHookExW: Fn | null = null
 let CallNextHookEx: Fn | null = null
 let UnhookWindowsHookEx: Fn | null = null
+let SetWinEventHook: Fn | null = null
 let UnhookWinEvent: Fn | null = null
 let PeekMessageW: Fn | null = null
+let GetModuleHandleW: Fn | null = null
+
+const PM_REMOVE = 0x0001
 
 /**
  * Fenêtres Dofus connues : handle → accountId (undefined si fenêtre non réconciliée).
@@ -87,115 +98,127 @@ function loadKoffi(): boolean {
   }
 }
 
-export function initKeyboardHook(): boolean {
-  if (started) return true
-  if (process.platform !== 'win32') return false
-  if (!loadKoffi() || !koffi) return false
+// Hook clavier : observe la touche fin de tour (sans consommer).
+function keyProcImpl(nCode: number, wParam: number, lParam: unknown): number {
+  try {
+    if (Number(nCode) >= 0) {
+      const msg = Number(wParam)
+      if (msg === WM_KEYDOWN || msg === WM_SYSKEYDOWN) {
+        // KBDLLHOOKSTRUCT : vkCode (offset 0), scanCode (4), flags (8).
+        const vkCode = Number(koffi!.decode(lParam, 0, 'uint32'))
+        const flags = Number(koffi!.decode(lParam, 8, 'uint32'))
+        // Ignore les touches injectées (lecture de macro) : elles ne
+        // doivent pas re-déclencher la bascule de combat.
+        if ((flags & LLKHF_INJECTED) !== 0) {
+          return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+        }
+        const cfg = getConfig()
+        const targetVk = resolveVk(cfg.combat?.endTurnKey ?? 'F1')
 
+        if (targetVk !== null && vkCode === targetVk && isInCombat()) {
+          notifyCombatActivity()
+          const delay = cfg.combat?.switchDelay ?? 150
+          if (switchTimer) clearTimeout(switchTimer)
+          switchTimer = setTimeout(() => {
+            try {
+              cycle(getConfig(), 'next')
+            } catch {
+              /* ignore */
+            }
+          }, delay)
+        }
+      }
+    }
+  } catch {
+    /* ignore — ne jamais bloquer le hook */
+  }
+  // Ne pas consommer la touche : Dofus la reçoit normalement.
+  return Number(CallNextHookEx!(null, nCode, wParam, lParam))
+}
+
+// Callback flash : une fenêtre Dofus clignote (tour disponible) → bascule.
+function flashProcImpl(
+  _hHook: unknown,
+  _event: unknown,
+  hwnd: unknown,
+  idObject: unknown
+): void {
+  try {
+    if (Number(idObject) !== OBJID_WINDOW) return
+    const handle = Number(hwnd)
+    if (!knownDofusWindows.has(handle)) return
+    if (!isInCombat()) return
+    const accountId = knownDofusWindows.get(handle)
+    if (!accountId) return
+    setImmediate(() => {
+      try {
+        activateAccount(getConfig(), accountId)
+      } catch {
+        /* ignore */
+      }
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Charge les fonctions Win32 et enregistre les callbacks une seule fois. */
+function initFfi(): boolean {
+  if (ffiReady) return true
+  if (!loadKoffi() || !koffi) return false
   try {
     const user32 = koffi.load('user32.dll')
     const kernel32 = koffi.load('kernel32.dll')
 
-    // --- Keyboard hook (WH_KEYBOARD_LL) ---
     const HOOKPROC = koffi.proto(
       'intptr_t LowLevelKeyboardProc(int32 nCode, uintptr_t wParam, void* lParam)'
     )
-
-    const SetWindowsHookExW = user32.func(
-      'void* SetWindowsHookExW(int32, void*, void*, uint32)'
-    ) as unknown as Fn
-    CallNextHookEx = user32.func(
-      'intptr_t CallNextHookEx(void*, int32, uintptr_t, void*)'
-    ) as unknown as Fn
-    UnhookWindowsHookEx = user32.func('bool UnhookWindowsHookEx(void*)') as unknown as Fn
-    PeekMessageW = user32.func(
-      'bool PeekMessageW(void*, void*, uint32, uint32, uint32)'
-    ) as unknown as Fn
-    const GetModuleHandleW = kernel32.func('void* GetModuleHandleW(void*)') as unknown as Fn
-
-    const PM_REMOVE = 0x0001
-
-    const keyProc = (nCode: number, wParam: number, lParam: unknown): number => {
-      try {
-        if (Number(nCode) >= 0) {
-          const msg = Number(wParam)
-          if (msg === WM_KEYDOWN || msg === WM_SYSKEYDOWN) {
-            // KBDLLHOOKSTRUCT : vkCode (offset 0), scanCode (4), flags (8).
-            const vkCode = Number(koffi!.decode(lParam, 0, 'uint32'))
-            const flags = Number(koffi!.decode(lParam, 8, 'uint32'))
-            // Ignore les touches injectées (lecture de macro) : elles ne
-            // doivent pas re-déclencher la bascule de combat.
-            if ((flags & LLKHF_INJECTED) !== 0) {
-              return Number(CallNextHookEx!(null, nCode, wParam, lParam))
-            }
-            const cfg = getConfig()
-            const targetVk = resolveVk(cfg.combat?.endTurnKey ?? 'F1')
-
-            if (targetVk !== null && vkCode === targetVk && isInCombat()) {
-              notifyCombatActivity()
-              const delay = cfg.combat?.switchDelay ?? 150
-              if (switchTimer) clearTimeout(switchTimer)
-              switchTimer = setTimeout(() => {
-                try {
-                  cycle(getConfig(), 'next')
-                } catch {
-                  /* ignore */
-                }
-              }, delay)
-            }
-          }
-        }
-      } catch {
-        /* ignore — ne jamais bloquer le hook */
-      }
-      // Ne pas consommer la touche : Dofus la reçoit normalement.
-      return Number(CallNextHookEx!(null, nCode, wParam, lParam))
-    }
-
-    hookProcCb = koffi.register(keyProc, koffi.pointer(HOOKPROC))
-    const hInst = GetModuleHandleW(null)
-    hookHandle = SetWindowsHookExW(WH_KEYBOARD_LL, hookProcCb, hInst, 0)
-    if (!hookHandle) throw new Error('SetWindowsHookExW échoué')
-
-    // --- Flash event hook (SetWinEventHook EVENT_SYSTEM_FLASH) ---
     // WINEVENT_OUTOFCONTEXT (0) : le callback est appelé dans notre thread via la
     // pompe de messages — pas de restriction UIPI, fonctionne même si Dofus est
     // lancé en administrateur.
     const WINEVENTPROC = koffi.proto(
       'void WinEventProc(void* hHook, uint32 event, void* hwnd, int32 idObject, int32 idChild, uint32 idEventThread, uint32 dwmsEventTime)'
     )
-    const SetWinEventHook = user32.func(
+
+    SetWindowsHookExW = user32.func(
+      'void* SetWindowsHookExW(int32, void*, void*, uint32)'
+    ) as unknown as Fn
+    CallNextHookEx = user32.func(
+      'intptr_t CallNextHookEx(void*, int32, uintptr_t, void*)'
+    ) as unknown as Fn
+    UnhookWindowsHookEx = user32.func('bool UnhookWindowsHookEx(void*)') as unknown as Fn
+    SetWinEventHook = user32.func(
       'void* SetWinEventHook(uint32, uint32, void*, void*, uint32, uint32, uint32)'
     ) as unknown as Fn
     UnhookWinEvent = user32.func('bool UnhookWinEvent(void*)') as unknown as Fn
+    PeekMessageW = user32.func(
+      'bool PeekMessageW(void*, void*, uint32, uint32, uint32)'
+    ) as unknown as Fn
+    GetModuleHandleW = kernel32.func('void* GetModuleHandleW(void*)') as unknown as Fn
 
-    const flashProc = (
-      _hHook: unknown,
-      _event: unknown,
-      hwnd: unknown,
-      idObject: unknown
-    ): void => {
-      try {
-        if (Number(idObject) !== OBJID_WINDOW) return
-        const handle = Number(hwnd)
-        if (!knownDofusWindows.has(handle)) return
-        if (!isInCombat()) return
-        const accountId = knownDofusWindows.get(handle)
-        if (!accountId) return
-        setImmediate(() => {
-          try {
-            activateAccount(getConfig(), accountId)
-          } catch {
-            /* ignore */
-          }
-        })
-      } catch {
-        /* ignore */
-      }
-    }
+    hookProcCb = koffi.register(keyProcImpl, koffi.pointer(HOOKPROC))
+    flashProcCb = koffi.register(flashProcImpl, koffi.pointer(WINEVENTPROC))
+    ffiReady = true
+    return true
+  } catch (err) {
+    console.warn('[keyboardHook] chargement FFI échoué :', err)
+    return false
+  }
+}
 
-    flashProcCb = koffi.register(flashProc, koffi.pointer(WINEVENTPROC))
-    flashEventHook = SetWinEventHook(
+export function initKeyboardHook(): boolean {
+  if (started) return true
+  if (process.platform !== 'win32') return false
+  if (!initFfi() || !koffi) return false
+
+  try {
+    // --- Keyboard hook (WH_KEYBOARD_LL) ---
+    const hInst = GetModuleHandleW!(null)
+    hookHandle = SetWindowsHookExW!(WH_KEYBOARD_LL, hookProcCb, hInst, 0)
+    if (!hookHandle) throw new Error('SetWindowsHookExW échoué')
+
+    // --- Flash event hook (SetWinEventHook EVENT_SYSTEM_FLASH) ---
+    flashEventHook = SetWinEventHook!(
       EVENT_SYSTEM_FLASH, EVENT_SYSTEM_FLASH,
       null, flashProcCb,
       0, 0,
@@ -207,17 +230,21 @@ export function initKeyboardHook(): boolean {
 
     // Pompe de messages : requise pour WH_KEYBOARD_LL et pour les callbacks
     // WINEVENT_OUTOFCONTEXT (tous deux livrés via la file de messages du thread).
+    // Chaque frappe système attend que ce thread traite le hook : la pompe
+    // tourne à 1 ms (résolution timer 1 ms demandée tant que le hook est actif)
+    // pour réduire la latence d'entrée ajoutée. Buffer MSG alloué une seule fois.
+    requestHighResTimers()
+    const pumpMsg = Buffer.alloc(64)
     pumpTimer = setInterval(() => {
       try {
-        const msg = Buffer.alloc(64)
         let guard = 0
-        while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
+        while (PeekMessageW!(pumpMsg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
           /* draine la file */
         }
       } catch {
         /* ignore */
       }
-    }, 5)
+    }, 1)
 
     started = true
     console.log('[keyboardHook] actif (clavier + flash)')
@@ -233,6 +260,7 @@ export function stopKeyboardHook(): void {
   if (pumpTimer) {
     clearInterval(pumpTimer)
     pumpTimer = null
+    releaseHighResTimers()
   }
   if (switchTimer) {
     clearTimeout(switchTimer)
