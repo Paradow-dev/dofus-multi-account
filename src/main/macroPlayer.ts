@@ -22,9 +22,13 @@ const MOUSEEVENTF_LEFTDOWN = 0x0002
 const MOUSEEVENTF_LEFTUP = 0x0004
 const MOUSEEVENTF_RIGHTDOWN = 0x0008
 const MOUSEEVENTF_RIGHTUP = 0x0010
+const MOUSEEVENTF_VIRTUALDESK = 0x4000
 const MOUSEEVENTF_ABSOLUTE = 0x8000
-const SM_CXSCREEN = 0
-const SM_CYSCREEN = 1
+// Bureau virtuel (multi-écrans) : origine et taille englobant tous les moniteurs.
+const SM_XVIRTUALSCREEN = 76
+const SM_YVIRTUALSCREEN = 77
+const SM_CXVIRTUALSCREEN = 78
+const SM_CYVIRTUALSCREEN = 79
 const VK_ESCAPE = 0x1b
 const KEY_DOWN = 0x8000
 /** Taille de la structure INPUT sur x64 (octets). */
@@ -100,7 +104,10 @@ export function isPlayerAvailable(): boolean {
   return initFfi()
 }
 
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/** Horodatage du dernier Échap injecté (pour ne pas s'auto-interrompre). */
+let lastEscapeInjectedAt = 0
 
 /** true si Échap est enfoncée (interruption de la lecture). */
 function escapePressed(): boolean {
@@ -112,6 +119,7 @@ function escapePressed(): boolean {
 }
 
 function sendKey(vk: number, up: boolean): void {
+  if (vk === VK_ESCAPE) lastEscapeInjectedAt = Date.now()
   SendInputK!(
     1,
     {
@@ -145,13 +153,18 @@ function sendMouse(dx: number, dy: number, flags: number): void {
   )
 }
 
-/** Convertit une position écran (px) en coordonnées absolues 0-65535. */
+/**
+ * Convertit une position écran (px) en coordonnées absolues 0-65535 du bureau
+ * VIRTUEL (tous moniteurs confondus) — à combiner avec MOUSEEVENTF_VIRTUALDESK.
+ */
 function toAbsolute(px: number, py: number): { ax: number; ay: number } {
-  const sw = Math.max(1, Number(GetSystemMetrics!(SM_CXSCREEN)))
-  const sh = Math.max(1, Number(GetSystemMetrics!(SM_CYSCREEN)))
+  const vx = Number(GetSystemMetrics!(SM_XVIRTUALSCREEN))
+  const vy = Number(GetSystemMetrics!(SM_YVIRTUALSCREEN))
+  const vw = Math.max(1, Number(GetSystemMetrics!(SM_CXVIRTUALSCREEN)))
+  const vh = Math.max(1, Number(GetSystemMetrics!(SM_CYVIRTUALSCREEN)))
   return {
-    ax: Math.round((px * 65535) / (sw - 1 || 1)),
-    ay: Math.round((py * 65535) / (sh - 1 || 1))
+    ax: Math.round(((px - vx) * 65535) / (vw - 1 || 1)),
+    ay: Math.round(((py - vy) * 65535) / (vh - 1 || 1))
   }
 }
 
@@ -165,11 +178,12 @@ async function replayClick(
   const px = Math.round(bounds.x + xRatio * bounds.width)
   const py = Math.round(bounds.y + yRatio * bounds.height)
   const { ax, ay } = toAbsolute(px, py)
-  sendMouse(ax, ay, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE)
+  const base = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK
+  sendMouse(ax, ay, MOUSEEVENTF_MOVE | base)
   await sleep(30)
-  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN) | MOUSEEVENTF_ABSOLUTE)
+  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN) | base)
   await sleep(20)
-  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP) | MOUSEEVENTF_ABSOLUTE)
+  sendMouse(ax, ay, (button === 'left' ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP) | base)
 }
 
 /**
@@ -186,7 +200,13 @@ export async function replayEvents(
   if (!initFfi()) return false
   for (const ev of events) {
     if (ev.delay > 0) await sleep(ev.delay)
-    if (isAborted() || escapePressed()) return false
+    if (isAborted()) return false
+    // Si la macro contient elle-même un Échap, GetAsyncKeyState ne distingue
+    // pas notre injection d'un appui réel : on suspend le contrôle d'abandon
+    // pour cet événement et pendant 500 ms après chaque Échap injecté.
+    const isEscapeEvent = ev.kind !== 'click' && ev.vk === VK_ESCAPE
+    const escJustInjected = Date.now() - lastEscapeInjectedAt < 500
+    if (!isEscapeEvent && !escJustInjected && escapePressed()) return false
     try {
       if (ev.kind === 'click') {
         await replayClick(ev.xRatio, ev.yRatio, ev.button, bounds)

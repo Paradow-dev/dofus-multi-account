@@ -1,8 +1,8 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
-import { IPC } from '@shared/types'
+import { IPC, type QuickMacroState } from '@shared/types'
 import { getConfig, updateMacroBarPosition, clearMacroBarPosition } from './state'
-import { getQuickMacroState } from './quickMacro'
+import { getQuickMacroState, cancelQuickMacro } from './quickMacro'
 
 /**
  * Panneau flottant de la macro rapide : fenêtre sans cadre, transparente,
@@ -43,6 +43,9 @@ function createWindow(): void {
     movable: true,
     minimizable: false,
     maximizable: false,
+    // Jamais focalisable : les clics sur les boutons ne doivent pas voler le
+    // focus à la fenêtre Dofus (la lecture « compte actif » la cible).
+    focusable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
     hasShadow: false,
@@ -96,7 +99,19 @@ export function syncMacroBar(): void {
       if (!win.isVisible() && !focusHidden) win.showInactive()
     }
   } else {
+    // Désactivation en cours de session : arrête hooks/lecture avant de
+    // détruire la fenêtre (sinon les hooks resteraient installés).
+    if (win) cancelQuickMacro()
     destroyMacroBar()
+  }
+}
+
+/** Pousse l'état de la macro au panneau seul (mises à jour fréquentes). */
+export function sendMacroBarState(state: QuickMacroState): void {
+  try {
+    win?.webContents.send(IPC.macroState, state)
+  } catch {
+    /* ignore — fenêtre en cours de destruction */
   }
 }
 
@@ -104,10 +119,21 @@ export function syncMacroBar(): void {
 let focusHidden = false
 
 export function setMacroBarFocusHidden(next: boolean): void {
+  // Mémorisé même si le masquage est refusé (macro active) : ré-appliqué au
+  // retour au repos via refreshMacroBarVisibility().
   focusHidden = next
+  refreshMacroBarVisibility()
+}
+
+/**
+ * Applique l'état de masquage courant : caché si la fenêtre active n'est pas
+ * Dofus ET que la macro est au repos ; visible sinon. Appelé par focusWatch et
+ * par quickMacro au retour en phase idle.
+ */
+export function refreshMacroBarVisibility(): void {
   if (!win) return
   // Le panneau reste visible dès que la macro est active (countdown, REC…).
-  if (next && getQuickMacroState().phase === 'idle') win.hide()
+  if (focusHidden && getQuickMacroState().phase === 'idle') win.hide()
   else if (getConfig().quickMacro.enabled && !win.isVisible()) win.showInactive()
 }
 
@@ -117,12 +143,13 @@ export function resizeMacroBarWindow(width: number, height: number): void {
   const w = Math.max(MIN_W, Math.min(MAX_W, Math.round(width)))
   const h = Math.max(1, Math.round(height))
   const b = win.getBounds()
+  // Conserve la position courante de la fenêtre (un déplacement en cours ne
+  // doit pas être annulé par un redimensionnement) ; seul x est re-centré tant
+  // qu'aucune position personnalisée n'est persistée — comme accountBar.
   const hasCustomPos = getConfig().quickMacro.x !== undefined
-  const def = defaultPosition(w, h)
-  const x = hasCustomPos ? b.x : def.x
-  const y = hasCustomPos ? b.y : def.y
-  if (b.width === w && b.height === h && b.x === x && b.y === y) return
-  win.setBounds({ x, y, width: w, height: h })
+  const x = hasCustomPos ? b.x : defaultPosition(w, h).x
+  if (b.width === w && b.height === h && b.x === x) return
+  win.setBounds({ x, y: b.y, width: w, height: h })
 }
 
 /** Réinitialise la position du panneau (oublie la position persistée, re-centre). */

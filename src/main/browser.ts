@@ -144,9 +144,14 @@ function createWindow(): void {
 export function syncBrowser(): void {
   const cfg = getConfig().browser
   if (cfg.enabled) {
-    if (!win) createWindow()
-    // Fenêtre déjà ouverte : réaligne l'opacité sans voler le focus.
-    else win.setOpacity(cfg.opacity)
+    if (!win) {
+      createWindow()
+    } else {
+      // Fenêtre déjà ouverte : réaligne l'opacité sans voler le focus,
+      // et ré-affiche si masquée (sauf masquage « hors jeu » en cours).
+      win.setOpacity(cfg.opacity)
+      if (!win.isVisible() && !focusHidden) win.showInactive()
+    }
   } else {
     destroyBrowser()
   }

@@ -3,7 +3,7 @@
 import '@ds/fonts.css'
 import '@ds/tokens/tokens.css'
 import './macrobar.css'
-import type { QuickMacroAction, QuickMacroState } from '@shared/types'
+import type { QuickMacroAction, QuickMacroPhase, QuickMacroState } from '@shared/types'
 
 const barEl = document.getElementById('bar') as HTMLElement
 const contentEl = document.getElementById('content') as HTMLElement
@@ -32,7 +32,48 @@ function fmtDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1).replace('.', ',')} s`
 }
 
+/* Mise à jour incrémentale : le DOM n'est reconstruit (et la fenêtre
+ * redimensionnée) qu'au changement de phase ; les rafales d'événements
+ * (compteur REC, progression de lecture) ne modifient que le texte/la barre. */
+let lastPhase: QuickMacroPhase | null = null
+let countdownTextEl: HTMLElement | null = null
+let recTextEl: HTMLElement | null = null
+let replayTextEl: HTMLElement | null = null
+let progressFillEl: HTMLElement | null = null
+
+function countdownText(state: QuickMacroState): string {
+  return `⏺ Enregistrement dans ${state.countdown ?? 0}…`
+}
+function recText(state: QuickMacroState): string {
+  return `REC — ${state.eventCount} évts · ${fmtDuration(state.durationMs)}`
+}
+function replayText(state: QuickMacroState): string {
+  return `Compte ${state.replayIndex ?? 1}/${state.replayTotal ?? 1} · ${state.replayLabel ?? ''}`
+}
+function replayPct(state: QuickMacroState): string {
+  const total = Math.max(1, state.replayTotal ?? 1)
+  return `${Math.round(((state.replayIndex ?? 1) / total) * 100)}%`
+}
+
+/** Met à jour les éléments en place, sans reconstruire le DOM. */
+function update(state: QuickMacroState): void {
+  switch (state.phase) {
+    case 'countdown':
+      if (countdownTextEl) countdownTextEl.textContent = countdownText(state)
+      break
+    case 'recording':
+      if (recTextEl) recTextEl.textContent = recText(state)
+      break
+    case 'replaying':
+      if (replayTextEl) replayTextEl.textContent = replayText(state)
+      if (progressFillEl) progressFillEl.style.width = replayPct(state)
+      break
+  }
+}
+
 function render(state: QuickMacroState): void {
+  lastPhase = state.phase
+  countdownTextEl = recTextEl = replayTextEl = progressFillEl = null
   contentEl.replaceChildren()
 
   switch (state.phase) {
@@ -41,15 +82,15 @@ function render(state: QuickMacroState): void {
       break
 
     case 'countdown':
-      contentEl.append(
-        el('span', 'mb-text', `⏺ Enregistrement dans ${state.countdown ?? 0}…`)
-      )
+      countdownTextEl = el('span', 'mb-text', countdownText(state))
+      contentEl.append(countdownTextEl)
       break
 
     case 'recording': {
+      recTextEl = el('span', 'mb-text', recText(state))
       contentEl.append(
         el('span', 'mb-dot mb-dot--rec'),
-        el('span', 'mb-text', `REC — ${state.eventCount} évts · ${fmtDuration(state.durationMs)}`),
+        recTextEl,
         button('■ Arrêter (F12)', 'stop')
       )
       break
@@ -67,16 +108,14 @@ function render(state: QuickMacroState): void {
     }
 
     case 'replaying': {
-      const total = state.replayTotal ?? 1
-      const index = state.replayIndex ?? 1
-      const pct = Math.round((index / Math.max(1, total)) * 100)
-      const fill = el('div', 'mb-progress-fill')
-      fill.style.width = `${pct}%`
+      progressFillEl = el('div', 'mb-progress-fill')
+      progressFillEl.style.width = replayPct(state)
       const progress = el('div', 'mb-progress')
-      progress.append(fill)
+      progress.append(progressFillEl)
+      replayTextEl = el('span', 'mb-text', replayText(state))
       contentEl.append(
         el('span', 'mb-dot mb-dot--play'),
-        el('span', 'mb-text', `Compte ${index}/${total} · ${state.replayLabel ?? ''}`),
+        replayTextEl,
         progress,
         el('span', 'mb-text mb-text--hint', 'Échap = stop')
       )
@@ -84,6 +123,7 @@ function render(state: QuickMacroState): void {
     }
   }
 
+  // La fenêtre n'est redimensionnée qu'au changement de phase (render).
   requestAnimationFrame(reportSize)
 }
 
@@ -94,6 +134,10 @@ function reportSize(): void {
 }
 
 window.api.onQuickMacroState((state) => {
+  if (state.phase === lastPhase) {
+    update(state)
+    return
+  }
   if (state.phase === 'idle') {
     // Le raccourci a pu changer dans les réglages : on le relit au repos.
     void window.api.getConfig().then((cfg) => {

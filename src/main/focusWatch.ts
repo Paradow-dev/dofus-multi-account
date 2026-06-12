@@ -41,6 +41,16 @@ function loadForegroundFn(): boolean {
   }
 }
 
+/** HWND de la fenêtre au premier plan (null hors Windows / FFI indisponible). */
+export function getForegroundHandle(): number | null {
+  if (!loadForegroundFn() || !GetForegroundWindow) return null
+  try {
+    return Number(GetForegroundWindow())
+  } catch {
+    return null
+  }
+}
+
 /** HWND natifs de toutes nos fenêtres (overlays inclus) : ne déclenchent pas le masquage. */
 function ownHandles(): Set<number> {
   const handles = new Set<number>()

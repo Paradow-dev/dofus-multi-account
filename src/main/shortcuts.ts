@@ -149,12 +149,12 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
   tryRegister(config.combatToggle ?? '', 'Mode combat', () => {
     setImmediate(() => toggleCombat())
   })
-  // Macro rapide : démarre/arrête l'enregistrement (uniquement si activée).
-  if (config.quickMacro?.enabled) {
-    tryRegister(config.quickMacro.shortcut, 'Macro rapide', () => {
-      setImmediate(() => toggleQuickMacro())
-    })
-  }
+  // Macro rapide : démarre/arrête l'enregistrement. Accélérateur vide quand la
+  // fonctionnalité est désactivée (tryRegister ignore les vides), pour suivre
+  // la même convention que les autres entrées optionnelles ci-dessus.
+  tryRegister(config.quickMacro?.enabled ? config.quickMacro.shortcut : '', 'Macro rapide', () => {
+    setImmediate(() => toggleQuickMacro())
+  })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.
   const mouseHookOk = setMouseBindings(mouseBindings)

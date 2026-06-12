@@ -8,38 +8,20 @@
  * exécution (ou annulation).
  */
 
-import { BrowserWindow } from 'electron'
 import { IPC, type QuickMacroAction, type QuickMacroState } from '@shared/types'
-import { getConfig } from './state'
-import { listWindows } from './windowManager'
+import { getConfig, broadcast } from './state'
+import { listWindows, boundsForHandle } from './windowManager'
 import { activateAccount } from './shortcuts'
 import { resolveVk } from './keyboardHook'
+import { getForegroundHandle } from './focusWatch'
+import { sendMacroBarState, refreshMacroBarVisibility } from './macroBar'
 import {
   startMacroRecording,
   stopMacroRecording,
   type MacroEvent,
   type RecorderBounds
 } from './macroRecorder'
-import { replayEvents, isPlayerAvailable } from './macroPlayer'
-
-const VK_F12 = 0x7b
-
-type Fn = (...args: unknown[]) => unknown
-let GetForegroundWindow: Fn | null = null
-
-function loadForegroundFn(): boolean {
-  if (GetForegroundWindow) return true
-  if (process.platform !== 'win32') return false
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const koffi = require('koffi') as typeof import('koffi')
-    const user32 = koffi.load('user32.dll')
-    GetForegroundWindow = user32.func('void* GetForegroundWindow()') as unknown as Fn
-    return true
-  } catch {
-    return false
-  }
-}
+import { replayEvents, isPlayerAvailable, sleep } from './macroPlayer'
 
 /* ---------- État ---------- */
 
@@ -47,11 +29,12 @@ let state: QuickMacroState = { phase: 'idle', eventCount: 0, durationMs: 0 }
 let countdownTimer: NodeJS.Timeout | null = null
 /** Séquence enregistrée (éphémère, jamais persistée). */
 let recordedEvents: MacroEvent[] = []
-let recordedDurationMs = 0
 /** Bounds de la fenêtre de référence pendant l'enregistrement. */
 let recordingBounds: RecorderBounds = { x: 0, y: 0, width: 1920, height: 1080 }
 /** Compte sur lequel la macro a été enregistrée (exclu de la lecture « tous »). */
 let recordingAccountId: string | undefined
+/** HWND de la fenêtre d'enregistrement (exclusion même sans compte réconcilié). */
+let recordingHandle: number | undefined
 /** Drapeau d'interruption de la lecture (Échap / annulation). */
 let replayAborted = false
 
@@ -59,20 +42,20 @@ export function getQuickMacroState(): QuickMacroState {
   return state
 }
 
-/** Diffuse l'état courant au panneau macro et à la fenêtre de réglages. */
-function broadcast(): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    try {
-      win.webContents.send(IPC.macroState, state)
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
+/**
+ * Diffuse l'état : le panneau macro reçoit toutes les mises à jour (compteur
+ * REC, progression), les autres fenêtres seulement les changements de phase
+ * (évite le fan-out IPC à chaque frappe enregistrée).
+ */
 function setState(next: QuickMacroState): void {
+  const phaseChanged = next.phase !== state.phase
   state = next
-  broadcast()
+  sendMacroBarState(state)
+  if (phaseChanged) {
+    broadcast(IPC.macroState, state)
+    // De retour au repos : ré-applique le masquage « hors jeu » éventuel.
+    if (state.phase === 'idle') refreshMacroBarVisibility()
+  }
 }
 
 /** Retour au repos : la macro est effacée (éphémère). */
@@ -83,21 +66,25 @@ function reset(): void {
   }
   stopMacroRecording()
   recordedEvents = []
-  recordedDurationMs = 0
   recordingAccountId = undefined
+  recordingHandle = undefined
   setState({ phase: 'idle', eventCount: 0, durationMs: 0 })
 }
 
 /* ---------- Enregistrement ---------- */
 
 /** Fenêtre Dofus au premier plan (bounds + compte réconcilié), si trouvée. */
-function foregroundDofusWindow(): { bounds: RecorderBounds; accountId?: string } | null {
-  if (!loadForegroundFn() || !GetForegroundWindow) return null
+function foregroundDofusWindow(): {
+  bounds: RecorderBounds
+  accountId?: string
+  handle: number
+} | null {
+  const fg = getForegroundHandle()
+  if (fg === null) return null
   try {
-    const fg = Number(GetForegroundWindow())
     const win = listWindows(getConfig().accounts, false).find((w) => w.handle === fg)
     if (!win || win.bounds.width <= 0 || win.bounds.height <= 0) return null
-    return { bounds: win.bounds, accountId: win.accountId }
+    return { bounds: win.bounds, accountId: win.accountId, handle: win.handle }
   } catch {
     return null
   }
@@ -133,12 +120,17 @@ function startRecording(): void {
   if (fg) {
     recordingBounds = fg.bounds
     recordingAccountId = fg.accountId
+    recordingHandle = fg.handle
   } else {
     recordingAccountId = undefined
+    recordingHandle = undefined
   }
 
-  // Touches à ne pas enregistrer : F12 (stop) et la touche finale du raccourci.
-  const ignoreVks = new Set<number>([VK_F12])
+  // Touche finale du raccourci de bascule : non enregistrée. F12 (stop) est
+  // filtrée par le recorder lui-même. Si la touche du raccourci n'est pas
+  // connue de VK_MAP (resolveVk null), on s'appuie sur l'assainissement de la
+  // séquence à l'arrêt (macroRecorder) pour retirer les touches « collées ».
+  const ignoreVks = new Set<number>()
   const shortcutVk = resolveVk(cfg.quickMacro.shortcut)
   if (shortcutVk !== null) ignoreVks.add(shortcutVk)
 
@@ -164,7 +156,6 @@ function startRecording(): void {
 function finishRecording(): void {
   if (state.phase !== 'recording') return
   recordedEvents = stopMacroRecording()
-  recordedDurationMs = state.durationMs
   if (recordedEvents.length === 0) {
     reset()
     return
@@ -177,22 +168,37 @@ function finishRecording(): void {
   setState({
     phase: 'confirm',
     eventCount: recordedEvents.length,
-    durationMs: recordedDurationMs,
+    durationMs: state.durationMs,
     otherCount
   })
 }
 
 /* ---------- Lecture ---------- */
 
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
-
 /** Rejoue la macro sur tous les autres comptes, dans l'ordre de cycle. */
 async function replayAll(): Promise<void> {
   const cfg = getConfig()
   const events = recordedEvents
+  const durationMs = state.durationMs
+  // Une seule énumération : compte → handle (les bounds sont rafraîchis par
+  // fenêtre, après mise au premier plan, via boundsForHandle).
+  const handleByAccount = new Map<string, number>()
+  try {
+    for (const w of listWindows(cfg.accounts, false)) {
+      if (w.accountId) handleByAccount.set(w.accountId, w.handle)
+    }
+  } catch {
+    /* ignore */
+  }
+  // Exclut le compte d'enregistrement, par id et/ou par HWND (au cas où le
+  // compte n'était pas réconcilié au moment de l'enregistrement).
   const targets = [...cfg.accounts]
     .sort((a, b) => a.order - b.order)
-    .filter((a) => a.id !== recordingAccountId)
+    .filter(
+      (a) =>
+        a.id !== recordingAccountId &&
+        (recordingHandle === undefined || handleByAccount.get(a.id) !== recordingHandle)
+    )
   if (targets.length === 0 || !isPlayerAvailable()) {
     reset()
     return
@@ -204,7 +210,7 @@ async function replayAll(): Promise<void> {
     setState({
       phase: 'replaying',
       eventCount: events.length,
-      durationMs: recordedDurationMs,
+      durationMs,
       replayIndex: i + 1,
       replayTotal: targets.length,
       replayLabel: account.label
@@ -214,8 +220,10 @@ async function replayAll(): Promise<void> {
     await sleep(cfg.quickMacro.betweenAccountsMs)
     if (replayAborted) break
     // Bounds frais de la fenêtre cible (conversion des ratios de clic).
-    const win = listWindows(cfg.accounts, false).find((w) => w.accountId === account.id)
-    const bounds = win && win.bounds.width > 0 ? win.bounds : recordingBounds
+    // Fenêtre disparue : on saute ce compte plutôt que de rejouer à l'aveugle.
+    const handle = handleByAccount.get(account.id)
+    const bounds = handle !== undefined ? boundsForHandle(handle) : null
+    if (!bounds) continue
     const done = await replayEvents(events, bounds, () => replayAborted)
     if (!done) break
   }
@@ -224,7 +232,9 @@ async function replayAll(): Promise<void> {
 
 /** Rejoue la macro une seule fois, sur la fenêtre actuellement au premier plan. */
 async function replayActive(): Promise<void> {
+  const cfg = getConfig()
   const events = recordedEvents
+  const durationMs = state.durationMs
   if (!isPlayerAvailable()) {
     reset()
     return
@@ -233,13 +243,34 @@ async function replayActive(): Promise<void> {
   setState({
     phase: 'replaying',
     eventCount: events.length,
-    durationMs: recordedDurationMs,
+    durationMs,
     replayIndex: 1,
     replayTotal: 1,
     replayLabel: 'Compte actif'
   })
-  const fg = foregroundDofusWindow()
-  await replayEvents(events, fg?.bounds ?? recordingBounds, () => replayAborted)
+  // Cible : la fenêtre Dofus au premier plan. À défaut (panneau cliqué alors
+  // qu'une autre application a le focus), on rabat sur le compte
+  // d'enregistrement ; sans aucune fenêtre, on annule plutôt que de rejouer
+  // dans le vide avec des bounds périmés.
+  let target = foregroundDofusWindow()
+  if (!target && recordingAccountId && activateAccount(cfg, recordingAccountId)) {
+    await sleep(cfg.quickMacro.betweenAccountsMs)
+    try {
+      const win = listWindows(cfg.accounts, false).find(
+        (w) => w.accountId === recordingAccountId
+      )
+      if (win && win.bounds.width > 0 && win.bounds.height > 0) {
+        target = { bounds: win.bounds, accountId: win.accountId, handle: win.handle }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  if (!target) {
+    reset()
+    return
+  }
+  await replayEvents(events, target.bounds, () => replayAborted)
   reset()
 }
 
@@ -285,8 +316,17 @@ export function handleQuickMacroAction(action: QuickMacroAction): void {
   }
 }
 
-/** Arrête proprement la macro rapide (fermeture de l'application). */
-export function stopQuickMacro(): void {
+/**
+ * Annule entièrement la macro rapide : interrompt la lecture, désinstalle les
+ * hooks d'enregistrement, retour au repos. Appelé quand la fonctionnalité est
+ * désactivée en cours de session et à la fermeture de l'application.
+ */
+export function cancelQuickMacro(): void {
   replayAborted = true
   reset()
+}
+
+/** Arrête proprement la macro rapide (fermeture de l'application). */
+export function stopQuickMacro(): void {
+  cancelQuickMacro()
 }

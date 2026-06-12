@@ -99,6 +99,17 @@ export function clearMacroBarPosition(): void {
   currentConfig = saveConfig({ ...currentConfig, quickMacro: rest })
 }
 
+/** Diffuse un message à toutes les fenêtres (fenêtres détruites ignorées). */
+export function broadcast(channel: string, payload: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    try {
+      win.webContents.send(channel, payload)
+    } catch {
+      /* ignore — fenêtre en cours de destruction */
+    }
+  }
+}
+
 function broadcastShortcutsState(): void {
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send(IPC.shortcutsState, lastRegistrations)

@@ -152,6 +152,21 @@ export function titleForHandle(handle: number): string {
   }
 }
 
+/** Bounds frais d'une fenêtre à partir de son handle (null si disparue/invalide). */
+export function boundsForHandle(
+  handle: number
+): { x: number; y: number; width: number; height: number } | null {
+  const m = getModule()
+  if (!m) return null
+  try {
+    const b = new m.Window(handle).getBounds()
+    const r = { x: b.x ?? 0, y: b.y ?? 0, width: b.width ?? 0, height: b.height ?? 0 }
+    return r.width > 0 && r.height > 0 ? r : null
+  } catch {
+    return null
+  }
+}
+
 /** Retrouve la fenêtre native correspondant à un compte (par titre). */
 function findWindowForAccount(account: AccountConfig): NativeWindow | null {
   if (!account.matchTitle) return null
