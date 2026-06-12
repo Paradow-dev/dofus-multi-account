@@ -32,6 +32,7 @@ type PageId =
   | 'overlay'
   | 'browser'
   | 'combat'
+  | 'macro'
   | 'windows'
   | 'about'
 
@@ -167,7 +168,8 @@ const NAV: { group: string; items: { id: PageId; label: string; icon: string }[]
       { id: 'layout', label: 'Disposition', icon: 'grid' },
       { id: 'overlay', label: 'Overlays', icon: 'tag' },
       { id: 'browser', label: 'Navigateur', icon: 'globe' },
-      { id: 'combat', label: 'Mode combat', icon: 'sword' }
+      { id: 'combat', label: 'Mode combat', icon: 'sword' },
+      { id: 'macro', label: 'Macro rapide', icon: 'rec' }
     ]
   },
   {
@@ -186,6 +188,7 @@ const PAGES: Record<PageId, () => HTMLElement> = {
   overlay: renderOverlays,
   browser: renderBrowser,
   combat: renderCombat,
+  macro: renderMacro,
   windows: renderDetected,
   about: renderAbout
 }
@@ -397,7 +400,8 @@ const ICONS: Record<string, string[]> = {
   window: ['M3 4h18v16H3z', 'M3 9h18'],
   globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3a15 15 0 0 1 0 18', 'M12 3a15 15 0 0 0 0 18'],
   info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01'],
-  sword: ['M5 19L19 5', 'M8.5 9.5L14.5 15.5', 'M5 19 m0 0 a1.8 1.8 0 1 0 0.01 0']
+  sword: ['M5 19L19 5', 'M8.5 9.5L14.5 15.5', 'M5 19 m0 0 a1.8 1.8 0 1 0 0.01 0'],
+  rec: ['M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0-10 0', 'M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 0 0-4 0']
 }
 
 function iconEl(name: string): SVGElement {
@@ -602,7 +606,14 @@ function renderCycle(): HTMLElement {
     cycleGrid,
     h('div', { class: 'field-label sec-gap', text: 'Affichage des overlays' }),
     overlayGrid,
-    h('div', { class: 'field-label sec-gap', text: 'Macro rapide' }),
+  )
+}
+
+/** Page dédiée à la macro rapide éphémère. */
+function renderMacro(): HTMLElement {
+  return pageEl(
+    'Macro rapide',
+    'Enregistrez une séquence de touches et de clics sur votre premier compte, puis rejouez-la sur les autres. La macro est effacée après exécution.',
     ...quickMacroSection()
   )
 }
