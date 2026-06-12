@@ -308,6 +308,9 @@ export function toggleQuickMacro(): void {
 /** Action utilisateur reçue du panneau macro (IPC). */
 export function handleQuickMacroAction(action: QuickMacroAction): void {
   switch (action) {
+    case 'record':
+      if (state.phase === 'idle') startCountdown()
+      break
     case 'stop':
       finishRecording()
       break

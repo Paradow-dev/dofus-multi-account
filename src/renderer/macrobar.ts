@@ -78,7 +78,10 @@ function render(state: QuickMacroState): void {
 
   switch (state.phase) {
     case 'idle':
-      contentEl.append(el('span', 'mb-text mb-text--hint', `Macro · ${shortcut} pour enregistrer`))
+      contentEl.append(
+        button('⏺ Enregistrer', 'record', true),
+        el('span', 'mb-text mb-text--hint', shortcut)
+      )
       break
 
     case 'countdown':

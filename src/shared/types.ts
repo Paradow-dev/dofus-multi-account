@@ -143,7 +143,7 @@ export interface QuickMacroState {
 }
 
 /** Action envoyée par le panneau macro au process principal. */
-export type QuickMacroAction = 'stop' | 'apply-all' | 'apply-active' | 'cancel'
+export type QuickMacroAction = 'record' | 'stop' | 'apply-all' | 'apply-active' | 'cancel'
 
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
