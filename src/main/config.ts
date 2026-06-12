@@ -91,11 +91,20 @@ const configSchema = z.object({
   browser: browserSchema,
   combat: combatSchema,
   quickMacro: quickMacroSchema,
-  hideOverlaysOutsideGame: z.boolean().default(true)
+  hideOverlaysOutsideGame: z.boolean().default(false)
 })
 
 const store = new Store<{ config: AppConfig }>({
-  defaults: { config: DEFAULT_CONFIG }
+  defaults: { config: DEFAULT_CONFIG },
+  migrations: {
+    // Les overlays restent désormais affichés en permanence par défaut :
+    // bascule one-shot des configs existantes (le réglage « Masquer les
+    // overlays hors du jeu » reste disponible pour qui veut le réactiver).
+    '1.8.2': (s) => {
+      const cfg = s.get('config')
+      if (cfg) s.set('config', { ...cfg, hideOverlaysOutsideGame: false })
+    }
+  }
 })
 
 /** Lit la config persistée ; retombe sur les défauts si le contenu est invalide. */
