@@ -191,15 +191,22 @@ async function replayAll(): Promise<void> {
     /* ignore */
   }
   // Exclut le compte d'enregistrement, par id et/ou par HWND (au cas où le
-  // compte n'était pas réconcilié au moment de l'enregistrement).
+  // compte n'était pas réconcilié au moment de l'enregistrement). Si la fenêtre
+  // d'enregistrement n'a pas pu être identifiée, on exclut celle actuellement
+  // au premier plan : le panneau étant non-focalisable, c'est encore la fenêtre
+  // sur laquelle l'utilisateur vient d'enregistrer.
+  const excludedHandle = recordingHandle ?? getForegroundHandle() ?? undefined
   const targets = [...cfg.accounts]
     .sort((a, b) => a.order - b.order)
     .filter(
       (a) =>
         a.id !== recordingAccountId &&
-        (recordingHandle === undefined || handleByAccount.get(a.id) !== recordingHandle)
+        (excludedHandle === undefined || handleByAccount.get(a.id) !== excludedHandle)
     )
   if (targets.length === 0 || !isPlayerAvailable()) {
+    console.warn(
+      `[quickMacro] lecture annulée : ${targets.length === 0 ? 'aucun compte cible' : 'SendInput indisponible'}`
+    )
     reset()
     return
   }
@@ -267,6 +274,7 @@ async function replayActive(): Promise<void> {
     }
   }
   if (!target) {
+    console.warn('[quickMacro] lecture annulée : aucune fenêtre Dofus cible au premier plan')
     reset()
     return
   }
