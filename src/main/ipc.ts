@@ -72,7 +72,9 @@ export function registerIpc(): void {
 
   // Macro rapide (panneau flottant).
   ipcMain.on(IPC.macroAction, (_e, action: QuickMacroAction) => handleQuickMacroAction(action))
-  ipcMain.on(IPC.macroBarResize, (_e, width: number, height: number) =>
+  // invoke (et non send) : le renderer attend que la fenêtre soit agrandie
+  // avant de révéler le nouveau contenu (sinon il déborde de l'ancien cadre).
+  ipcMain.handle(IPC.macroBarResize, (_e, width: number, height: number) =>
     resizeMacroBarWindow(width, height)
   )
   ipcMain.handle(IPC.macroBarResetPosition, () => resetMacroBarPosition())

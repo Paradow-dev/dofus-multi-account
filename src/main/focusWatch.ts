@@ -34,7 +34,10 @@ function loadForegroundFn(): boolean {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const koffi = require('koffi') as typeof import('koffi')
     const user32 = koffi.load('user32.dll')
-    GetForegroundWindow = user32.func('void* GetForegroundWindow()') as unknown as Fn
+    // intptr_t (et non void*) : koffi renvoie alors un nombre JS directement.
+    // Avec void*, le retour est un pointeur opaque dont Number() vaut NaN, ce
+    // qui rendait toutes les comparaisons de HWND silencieusement fausses.
+    GetForegroundWindow = user32.func('intptr_t GetForegroundWindow()') as unknown as Fn
     return true
   } catch {
     return false
@@ -45,7 +48,8 @@ function loadForegroundFn(): boolean {
 export function getForegroundHandle(): number | null {
   if (!loadForegroundFn() || !GetForegroundWindow) return null
   try {
-    return Number(GetForegroundWindow())
+    const handle = Number(GetForegroundWindow())
+    return Number.isFinite(handle) && handle !== 0 ? handle : null
   } catch {
     return null
   }

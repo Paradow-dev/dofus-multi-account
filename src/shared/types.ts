@@ -143,7 +143,7 @@ export interface QuickMacroState {
 }
 
 /** Action envoyée par le panneau macro au process principal. */
-export type QuickMacroAction = 'stop' | 'apply-all' | 'apply-active' | 'cancel'
+export type QuickMacroAction = 'record' | 'stop' | 'apply-all' | 'apply-active' | 'cancel'
 
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
@@ -372,7 +372,7 @@ export interface RendererApi {
   /** (Panneau macro) Envoie une action utilisateur au process principal. */
   macroAction(action: QuickMacroAction): void
   /** (Panneau macro) Demande d'adapter la taille de la fenêtre au contenu (px). */
-  resizeMacroBar(width: number, height: number): void
+  resizeMacroBar(width: number, height: number): Promise<void>
   /** Réinitialise la position du panneau macro (re-centre en bas de l'écran). */
   resetMacroBarPosition(): Promise<void>
 }

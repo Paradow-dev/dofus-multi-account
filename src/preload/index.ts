@@ -87,7 +87,7 @@ const api: RendererApi = {
   },
   macroAction: (action: QuickMacroAction) => ipcRenderer.send(IPC.macroAction, action),
   resizeMacroBar: (width: number, height: number) =>
-    ipcRenderer.send(IPC.macroBarResize, width, height),
+    ipcRenderer.invoke(IPC.macroBarResize, width, height),
   resetMacroBarPosition: () => ipcRenderer.invoke(IPC.macroBarResetPosition)
 }
 

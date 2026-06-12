@@ -78,7 +78,10 @@ function render(state: QuickMacroState): void {
 
   switch (state.phase) {
     case 'idle':
-      contentEl.append(el('span', 'mb-text mb-text--hint', `Macro · ${shortcut} pour enregistrer`))
+      contentEl.append(
+        button('⏺ Enregistrer', 'record', true),
+        el('span', 'mb-text mb-text--hint', shortcut)
+      )
       break
 
     case 'countdown':
@@ -124,13 +127,20 @@ function render(state: QuickMacroState): void {
   }
 
   // La fenêtre n'est redimensionnée qu'au changement de phase (render).
-  requestAnimationFrame(reportSize)
+  // La pilule est masquée le temps de l'ajustement : sinon le nouveau contenu
+  // déborde de l'ancien cadre avant que la fenêtre ne s'agrandisse.
+  barEl.style.visibility = 'hidden'
+  requestAnimationFrame(() => {
+    void reportSize().then(() => {
+      barEl.style.visibility = ''
+    })
+  })
 }
 
 /** Mesure la pilule et demande au process principal d'ajuster la fenêtre. */
-function reportSize(): void {
+async function reportSize(): Promise<void> {
   const r = barEl.getBoundingClientRect()
-  window.api.resizeMacroBar(Math.ceil(r.width) + BODY_PAD, Math.ceil(r.height) + BODY_PAD)
+  await window.api.resizeMacroBar(Math.ceil(r.width) + BODY_PAD, Math.ceil(r.height) + BODY_PAD)
 }
 
 window.api.onQuickMacroState((state) => {
@@ -155,7 +165,7 @@ void window.api.getConfig().then((cfg) => {
 })
 
 // Premier ajustement après chargement des polices (qui changent la largeur).
-window.addEventListener('load', () => requestAnimationFrame(reportSize))
+window.addEventListener('load', () => requestAnimationFrame(() => void reportSize()))
 if (document.fonts?.ready) {
-  void document.fonts.ready.then(() => reportSize())
+  void document.fonts.ready.then(() => void reportSize())
 }
