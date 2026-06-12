@@ -18,6 +18,8 @@
  * NOTE : non testé sous Windows au moment de l'écriture — prévu pour itération.
  */
 
+import { requestHighResTimers, releaseHighResTimers } from './timerRes'
+
 export type MouseButton = 'middle' | 'back' | 'forward'
 
 export interface MouseBinding {
@@ -194,18 +196,21 @@ function start(): boolean {
     if (!hookHandle) throw new Error('SetWindowsHookExW a échoué')
 
     // Pompe de messages : les hooks bas-niveau exigent que le thread traite des
-    // messages. Intervalle court pour une latence faible sur le clic.
+    // messages. Chaque événement souris du système attend ce traitement : pompe
+    // à 1 ms (résolution timer 1 ms demandée tant que le hook est actif) pour
+    // ne pas dégrader la fluidité du curseur. Buffer MSG alloué une seule fois.
+    requestHighResTimers()
+    const pumpMsg = Buffer.alloc(64)
     pumpTimer = setInterval(() => {
       try {
-        const msg = Buffer.alloc(64)
         let guard = 0
-        while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
+        while (PeekMessageW!(pumpMsg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
           /* on draine, le hook est appelé par le système pendant la récupération */
         }
       } catch {
         /* ignore */
       }
-    }, 5)
+    }, 1)
 
     started = true
     console.log('[mouseHook] actif')
@@ -221,6 +226,7 @@ function stop(): void {
   if (pumpTimer) {
     clearInterval(pumpTimer)
     pumpTimer = null
+    releaseHighResTimers()
   }
   try {
     if (hookHandle && UnhookWindowsHookEx) UnhookWindowsHookEx(hookHandle)

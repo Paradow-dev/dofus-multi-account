@@ -313,9 +313,13 @@ function render(state: QuickMacroState): void {
   // La carte est masquée le temps de l'ajustement : sinon le nouveau contenu
   // déborde de l'ancien cadre avant que la fenêtre ne s'agrandisse.
   barEl.style.visibility = 'hidden'
+  barEl.classList.remove('mb-anim')
   requestAnimationFrame(() => {
     void reportSize().then(() => {
       barEl.style.visibility = ''
+      // Relance l'animation d'entrée du contenu (one-shot, cf. .mb-anim).
+      void barEl.offsetWidth
+      barEl.classList.add('mb-anim')
     })
   })
 }

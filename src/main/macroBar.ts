@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { IPC, type QuickMacroState } from '@shared/types'
 import { getConfig, updateMacroBarPosition, clearMacroBarPosition } from './state'
 import { getQuickMacroState, cancelQuickMacro } from './quickMacro'
+import { fadeInShow, fadeOutHide, setOpacityNow } from './windowFade'
 
 /**
  * Panneau flottant de la macro rapide : fenêtre sans cadre, transparente,
@@ -85,7 +86,9 @@ function createWindow(): void {
     void win.loadFile(join(__dirname, '../renderer/macrobar.html'))
   }
 
-  win.once('ready-to-show', () => win?.showInactive())
+  win.once('ready-to-show', () => {
+    if (win) fadeInShow(win, getConfig().quickMacro.opacity)
+  })
 }
 
 /** Crée/détruit la fenêtre selon `enabled` ; applique l'opacité. */
@@ -94,9 +97,10 @@ export function syncMacroBar(): void {
   if (cfg.enabled) {
     if (!win) {
       createWindow()
+    } else if (!win.isVisible() && !focusHidden) {
+      fadeInShow(win, cfg.opacity)
     } else {
-      win.setOpacity(cfg.opacity)
-      if (!win.isVisible() && !focusHidden) win.showInactive()
+      setOpacityNow(win, cfg.opacity)
     }
   } else {
     // Désactivation en cours de session : arrête hooks/lecture avant de
@@ -132,9 +136,10 @@ export function setMacroBarFocusHidden(next: boolean): void {
  */
 export function refreshMacroBarVisibility(): void {
   if (!win) return
+  const cfg = getConfig().quickMacro
   // Le panneau reste visible dès que la macro est active (countdown, REC…).
-  if (focusHidden && getQuickMacroState().phase === 'idle') win.hide()
-  else if (getConfig().quickMacro.enabled && !win.isVisible()) win.showInactive()
+  if (focusHidden && getQuickMacroState().phase === 'idle') fadeOutHide(win, cfg.opacity)
+  else if (cfg.enabled && !win.isVisible()) fadeInShow(win, cfg.opacity)
 }
 
 /** Adapte la fenêtre à la taille de contenu demandée par le renderer. */

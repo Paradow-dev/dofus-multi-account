@@ -16,6 +16,7 @@
 import { isInCombat, notifyCombatActivity } from './combatState'
 import { cycle, activateAccount } from './shortcuts'
 import { getConfig } from './state'
+import { requestHighResTimers, releaseHighResTimers } from './timerRes'
 import type { DetectedWindow } from '@shared/types'
 
 /** Correspondance touche Electron → code virtuel Windows. */
@@ -207,17 +208,21 @@ export function initKeyboardHook(): boolean {
 
     // Pompe de messages : requise pour WH_KEYBOARD_LL et pour les callbacks
     // WINEVENT_OUTOFCONTEXT (tous deux livrés via la file de messages du thread).
+    // Chaque frappe système attend que ce thread traite le hook : la pompe
+    // tourne à 1 ms (résolution timer 1 ms demandée tant que le hook est actif)
+    // pour réduire la latence d'entrée ajoutée. Buffer MSG alloué une seule fois.
+    requestHighResTimers()
+    const pumpMsg = Buffer.alloc(64)
     pumpTimer = setInterval(() => {
       try {
-        const msg = Buffer.alloc(64)
         let guard = 0
-        while (PeekMessageW!(msg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
+        while (PeekMessageW!(pumpMsg, null, 0, 0, PM_REMOVE) && guard++ < 16) {
           /* draine la file */
         }
       } catch {
         /* ignore */
       }
-    }, 5)
+    }, 1)
 
     started = true
     console.log('[keyboardHook] actif (clavier + flash)')
@@ -233,6 +238,7 @@ export function stopKeyboardHook(): void {
   if (pumpTimer) {
     clearInterval(pumpTimer)
     pumpTimer = null
+    releaseHighResTimers()
   }
   if (switchTimer) {
     clearTimeout(switchTimer)

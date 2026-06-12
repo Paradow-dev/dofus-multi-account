@@ -48,6 +48,23 @@ body.mb-body {
   display: none;
 }
 
+/* Transition de phase : fondu/glissement one-shot du contenu (140 ms), relancé
+ * par le renderer en re-posant la classe. Aucune animation permanente. */
+.mb-card.mb-anim .mb-row {
+  animation: mb-enter 140ms var(--ease-enter, ease-out);
+}
+
+@keyframes mb-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .mb-row--sub {
   gap: 6px;
 }

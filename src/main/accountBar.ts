@@ -4,6 +4,7 @@ import { IPC, type AccountBarItem } from '@shared/types'
 import { getConfig, updateAccountBarPosition, clearAccountBarPosition } from './state'
 import { listWindows } from './windowManager'
 import { updateDofusHandles } from './keyboardHook'
+import { fadeInShow, fadeOutHide, setOpacityNow } from './windowFade'
 
 /**
  * Overlay « barre de comptes » : fenêtre sans cadre, transparente, always-on-top,
@@ -87,7 +88,9 @@ function createWindow(): void {
     void win.loadFile(join(__dirname, '../renderer/accountbar.html'))
   }
 
-  win.once('ready-to-show', () => win?.showInactive())
+  win.once('ready-to-show', () => {
+    if (win) fadeInShow(win, getConfig().accountBar.opacity)
+  })
 }
 
 /** Dernier instantané envoyé au renderer (évite IPC + re-rendu sans changement). */
@@ -130,8 +133,8 @@ export function syncAccountBar(): void {
       if (refreshTimer) clearInterval(refreshTimer)
       refreshTimer = setInterval(() => pushData(), 5000)
     } else {
-      win.setOpacity(cfg.opacity)
-      if (!win.isVisible() && !focusHidden) win.showInactive()
+      if (!win.isVisible() && !focusHidden) fadeInShow(win, cfg.opacity)
+      else setOpacityNow(win, cfg.opacity)
       pushData()
     }
   } else {
@@ -145,8 +148,9 @@ let focusHidden = false
 export function setAccountBarFocusHidden(next: boolean): void {
   focusHidden = next
   if (!win) return
-  if (next) win.hide()
-  else if (getConfig().accountBar.enabled && !win.isVisible()) win.showInactive()
+  const cfg = getConfig().accountBar
+  if (next) fadeOutHide(win, cfg.opacity)
+  else if (cfg.enabled && !win.isVisible()) fadeInShow(win, cfg.opacity)
 }
 
 /** Met à jour le compte actif mis en avant dans la barre. */
