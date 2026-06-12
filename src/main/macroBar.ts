@@ -11,8 +11,8 @@ import { getQuickMacroState, cancelQuickMacro } from './quickMacro'
  * lecture) et ses boutons d'action. Déplaçable, position mémorisée.
  */
 
-const INIT_W = 320
-const INIT_H = 56
+const INIT_W = 340
+const INIT_H = 64
 const MIN_W = 80
 const MAX_W = 900
 

@@ -675,7 +675,7 @@ function quickMacroSection(): (Node | null)[] {
       }
     }
   }) as HTMLInputElement
-  const delayRow = h('div', { class: 'field' }, [
+  const delayRow = h('div', { class: 'field field--gap-top' }, [
     h('span', { class: 'field-label', text: 'Délai entre les comptes' }),
     h('div', { class: 'range-row' }, [delaySlider, delayLabel])
   ])
@@ -697,10 +697,14 @@ function quickMacroSection(): (Node | null)[] {
     h('div', { class: 'alert-body' }, [
       h('p', {
         html:
-          'Enregistrez une séquence de <strong>touches et clics</strong> sur votre premier compte ' +
-          '(raccourci ci-dessus, puis <strong>F12</strong> pour arrêter), et rejouez-la sur les ' +
-          '<strong>autres comptes</strong> dans l’ordre de cycle. <strong>Échap</strong> interrompt la lecture. ' +
-          'La macro est <strong>éphémère</strong>&nbsp;: elle est effacée après exécution.'
+          'Enregistrez une séquence de <strong>touches, clics et mouvements de souris</strong> ' +
+          '(capturés à partir du premier clic) sur votre premier compte (raccourci ci-dessus, puis ' +
+          '<strong>F12</strong> pour arrêter), et rejouez-la sur les <strong>autres comptes</strong> ' +
+          'dans l’ordre de cycle. Les combinaisons <strong>Ctrl+clic</strong>, <strong>Échap</strong>, ' +
+          'les glisser-déposer et la molette sont reproduits. Le panneau permet de mettre en ' +
+          '<strong>pause</strong> et de <strong>recommencer</strong> l’enregistrement comme la lecture. ' +
+          '<strong>Échap</strong> interrompt la lecture. La macro reste <strong>rejouable</strong> après ' +
+          'lecture et n’est jamais enregistrée sur disque&nbsp;: elle est effacée au ✕ ou à la fermeture.'
       })
     ])
   ])

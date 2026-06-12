@@ -130,20 +130,36 @@ export type QuickMacroPhase = 'idle' | 'countdown' | 'recording' | 'confirm' | '
 
 export interface QuickMacroState {
   phase: QuickMacroPhase
+  /** true si l'enregistrement ou la lecture est en pause. */
+  paused?: boolean
   /** Compte à rebours restant (s) en phase countdown. */
   countdown?: number
   eventCount: number
   durationMs: number
+  /** Détail des événements : touches (keydown), clics (boutons) et mouvements. */
+  keyCount?: number
+  clickCount?: number
+  moveCount?: number
   /** Lecture : index du compte courant (1-based) et total. */
   replayIndex?: number
   replayTotal?: number
   replayLabel?: string
+  /** Lecture : progression globale (0-100, tous comptes confondus). */
+  progressPct?: number
   /** Nombre d'autres comptes détectés (pour le bouton « Appliquer sur les N autres »). */
   otherCount?: number
 }
 
 /** Action envoyée par le panneau macro au process principal. */
-export type QuickMacroAction = 'record' | 'stop' | 'apply-all' | 'apply-active' | 'cancel'
+export type QuickMacroAction =
+  | 'record'
+  | 'stop'
+  | 'apply-all'
+  | 'apply-active'
+  | 'pause'
+  | 'resume'
+  | 'restart'
+  | 'cancel'
 
 /** Configuration applicative complète, persistée via electron-store. */
 export interface AppConfig {
