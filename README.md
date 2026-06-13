@@ -17,7 +17,12 @@ instantanément entre vos fenêtres et organiser leur disposition.
   central) ou les boutons latéraux (Précédent / Suivant), éventuellement combinés
   à un modificateur (ex. `Ctrl+MouseForward`). Capté par un hook souris natif.
 - **Disposition des fenêtres** — au changement de compte : ne rien faire,
-  agrandir la fenêtre active, ou tout disposer en mosaïque.
+  agrandir la fenêtre active, tout disposer en mosaïque, ou **côte à côte**
+  (jeu dans une grande zone + zone secondaire). En côte à côte, la taille du
+  partage est réglable et la zone secondaire peut recevoir le navigateur
+  intégré, **n'importe quelle fenêtre externe** (par titre) ou rien ; changer
+  de compte se contente alors de remettre la fenêtre au premier plan, **sans
+  redimensionnement**.
 - **Détection automatique** des fenêtres Dofus par titre, avec réordonnancement
   manuel dans l'interface.
 - **Suivi de tour automatique** (combat) — bascule vers la fenêtre du perso dont

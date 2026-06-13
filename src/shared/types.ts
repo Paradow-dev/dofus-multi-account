@@ -3,7 +3,35 @@
  * Pas de dépendance Electron/Node ici — uniquement des structures de données.
  */
 
-export type LayoutMode = 'none' | 'grid' | 'maximize-active'
+export type LayoutMode = 'none' | 'grid' | 'maximize-active' | 'split'
+
+/** Contenu placé dans la zone secondaire lors de l'organisation « côte à côte ». */
+export type SplitSideContent =
+  /** Le mini-navigateur intégré. */
+  | 'browser'
+  /** Une fenêtre externe quelconque, repérée par une sous-chaîne de son titre. */
+  | 'window'
+  /** Rien : la zone est laissée libre (à l'utilisateur d'y placer ce qu'il veut). */
+  | 'none'
+
+/**
+ * Disposition « côte à côte » : les fenêtres de jeu sont empilées dans une grande
+ * zone (ex. 3/4 de l'écran) et une zone secondaire occupe le reste (ex. 1/4).
+ * L'agencement n'est appliqué qu'à la demande (action « Organiser ») : changer de
+ * compte ne fait que ramener la fenêtre au premier plan, sans redimensionnement.
+ * La taille comme le contenu de la zone secondaire sont entièrement configurables ;
+ * l'usage du navigateur intégré n'est pas imposé.
+ */
+export interface SplitLayoutConfig {
+  /** Côté de l'écran occupé par la zone secondaire ; la zone de jeu occupe le reste. */
+  side: 'left' | 'right'
+  /** Fraction de la largeur de l'écran attribuée à la zone de jeu (0.5 → 0.9). */
+  gameRatio: number
+  /** Ce qui est placé dans la zone secondaire lors de l'organisation. */
+  sideContent: SplitSideContent
+  /** Sous-chaîne du titre de la fenêtre à y placer (si `sideContent === 'window'`). */
+  sideMatchTitle?: string
+}
 
 /** Un compte configuré par l'utilisateur, associé à une fenêtre Dofus par titre. */
 export interface AccountConfig {
@@ -178,6 +206,10 @@ export interface AppConfig {
   combatToggle?: string
   /** Disposition appliquée lors d'un changement de compte. */
   layoutMode: LayoutMode
+  /** Réglages de la disposition « côte à côte » (jeu + navigateur). */
+  split: SplitLayoutConfig
+  /** Accélérateur pour (ré)organiser les fenêtres selon la disposition courante. */
+  arrangeShortcut?: string
   /** Interrupteur global : si false, aucun raccourci n'est enregistré. */
   enabled: boolean
   /** Overlay du nom de personnage. */
@@ -244,6 +276,8 @@ export const IPC = {
   windowsList: 'windows:list',
   actionFocus: 'action:focus',
   actionCycle: 'action:cycle',
+  /** renderer → main : (ré)organise les fenêtres selon la disposition courante. */
+  actionArrange: 'action:arrange',
   shortcutsState: 'shortcuts:state',
   updateState: 'update:state',
   updateCheck: 'update:check',
@@ -303,6 +337,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   cycleNext: 'Ctrl+Alt+Right',
   cyclePrev: 'Ctrl+Alt+Left',
   layoutMode: 'maximize-active',
+  split: { side: 'right', gameRatio: 0.75, sideContent: 'browser' },
   enabled: true,
   overlay: { enabled: false, opacity: 0.9 },
   accountBar: { enabled: false, opacity: 0.95 },
@@ -331,6 +366,8 @@ export interface RendererApi {
   listWindows(includeAll?: boolean): Promise<DetectedWindow[]>
   focusAccount(accountId: string): Promise<boolean>
   cycle(direction: CycleDirection): Promise<boolean>
+  /** (Ré)organise les fenêtres selon la disposition courante (mosaïque ou côte à côte). */
+  arrangeLayout(): Promise<void>
   onShortcutsState(cb: (registrations: ShortcutRegistration[]) => void): () => void
   /** Lance une vérification manuelle de mise à jour. */
   checkUpdate(): Promise<void>

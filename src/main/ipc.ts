@@ -8,7 +8,7 @@ import {
 } from '@shared/types'
 import { toggleCombat } from './combatState'
 import { listWindows } from './windowManager'
-import { activateAccount, cycle } from './shortcuts'
+import { activateAccount, cycle, arrangeLayout } from './shortcuts'
 import {
   applyConfig,
   getConfig,
@@ -44,6 +44,8 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.actionCycle, (_e, direction: CycleDirection) =>
     cycle(getConfig(), direction)
   )
+
+  ipcMain.handle(IPC.actionArrange, () => arrangeLayout(getConfig()))
 
   ipcMain.handle(IPC.updateCheck, () => checkForUpdates())
   ipcMain.handle(IPC.updateInstall, () => quitAndInstall())

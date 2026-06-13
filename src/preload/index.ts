@@ -21,6 +21,7 @@ const api: RendererApi = {
   listWindows: (includeAll = false) => ipcRenderer.invoke(IPC.windowsList, includeAll),
   focusAccount: (accountId: string) => ipcRenderer.invoke(IPC.actionFocus, accountId),
   cycle: (direction: CycleDirection) => ipcRenderer.invoke(IPC.actionCycle, direction),
+  arrangeLayout: () => ipcRenderer.invoke(IPC.actionArrange),
   onShortcutsState: (cb: (registrations: ShortcutRegistration[]) => void) => {
     const listener = (_e: unknown, registrations: ShortcutRegistration[]): void =>
       cb(registrations)

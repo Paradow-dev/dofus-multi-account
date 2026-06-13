@@ -1,5 +1,13 @@
 import { screen } from 'electron'
-import type { AccountConfig, DetectedWindow, LayoutMode } from '@shared/types'
+import type { AccountConfig, DetectedWindow, LayoutMode, SplitLayoutConfig } from '@shared/types'
+
+/** Rectangle en pixels écran. */
+export interface Rect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 /**
  * Accès à node-window-manager (addon natif Win32). Chargé paresseusement et de
@@ -211,6 +219,73 @@ export function focusAccount(account: AccountConfig, layout: LayoutMode = 'none'
     console.warn('[windowManager] focus échoué :', err)
     return false
   }
+}
+
+/**
+ * Calcule les deux zones de la disposition « côte à côte » sur l'écran principal :
+ * la grande zone de jeu (fraction `gameRatio` de la largeur) et la zone du
+ * navigateur (le reste), placée à gauche ou à droite selon `browserSide`.
+ */
+export function splitZones(split: SplitLayoutConfig): { game: Rect; side: Rect } {
+  const work = screen.getPrimaryDisplay().workArea
+  const ratio = Math.min(0.9, Math.max(0.5, split.gameRatio))
+  const gameW = Math.round(work.width * ratio)
+  const sideW = work.width - gameW
+  if (split.side === 'left') {
+    return {
+      side: { x: work.x, y: work.y, width: sideW, height: work.height },
+      game: { x: work.x + sideW, y: work.y, width: gameW, height: work.height }
+    }
+  }
+  return {
+    game: { x: work.x, y: work.y, width: gameW, height: work.height },
+    side: { x: work.x + gameW, y: work.y, width: sideW, height: work.height }
+  }
+}
+
+/**
+ * Empile toutes les fenêtres de jeu dans la zone de jeu (mêmes bounds) afin que
+ * changer de compte ne nécessite plus qu'un passage au premier plan, sans
+ * redimensionnement. Retourne la zone secondaire (pour y placer le contenu choisi).
+ */
+export function applySplitLayout(accounts: AccountConfig[], split: SplitLayoutConfig): Rect {
+  const { game, side } = splitZones(split)
+  for (const account of accounts) {
+    const win = findWindowForAccount(account)
+    if (!win) continue
+    try {
+      if (isMinimized(win)) win.restore()
+      win.setBounds(game)
+    } catch (err) {
+      console.warn('[windowManager] setBounds (split) échoué :', err)
+    }
+  }
+  return side
+}
+
+/**
+ * Place dans `rect` la première fenêtre visible dont le titre contient `needle`
+ * (n'importe quelle application : un navigateur externe, etc.). Retourne false si
+ * aucune fenêtre ne correspond. Sert à remplir la zone secondaire d'un split sans
+ * dépendre du navigateur intégré.
+ */
+export function snapWindowByTitle(needle: string, rect: Rect): boolean {
+  const lower = needle.trim().toLowerCase()
+  if (!lower) return false
+  for (const win of enumerate()) {
+    if (!safeVisible(win)) continue
+    if (!safeTitle(win).toLowerCase().includes(lower)) continue
+    try {
+      if (isMinimized(win)) win.restore()
+      win.setBounds(rect)
+      win.bringToTop()
+      return true
+    } catch (err) {
+      console.warn('[windowManager] setBounds (fenêtre secondaire) échoué :', err)
+      return false
+    }
+  }
+  return false
 }
 
 /**

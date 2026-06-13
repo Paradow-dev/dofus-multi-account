@@ -2,6 +2,7 @@ import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '@shared/types'
 import { getConfig, persistBrowserBounds, setBrowserEnabled } from './state'
+import type { Rect } from './windowManager'
 
 /**
  * Mini-navigateur en overlay : fenêtre dédiée, sans cadre natif (chrome maison),
@@ -165,6 +166,22 @@ export function setBrowserFocusHidden(next: boolean): void {
   if (!win) return
   if (next) win.hide()
   else if (getConfig().browser.enabled && !win.isVisible()) win.showInactive()
+}
+
+/**
+ * Place la fenêtre du navigateur sur une zone donnée (disposition « côte à côte »).
+ * Active et crée la fenêtre si nécessaire, puis persiste la nouvelle géométrie.
+ */
+export function snapBrowserTo(rect: Rect): void {
+  if (!getConfig().browser.enabled) {
+    setBrowserEnabled(true) // crée la fenêtre via syncBrowser
+  } else if (!win) {
+    createWindow()
+  }
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.setBounds(rect)
+  persistBrowserBounds(rect.x, rect.y, rect.width, rect.height)
 }
 
 /** Met la fenêtre navigateur au premier plan (la crée si besoin). */
