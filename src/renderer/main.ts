@@ -55,6 +55,7 @@ const state: State = {
     cycleNext: '',
     cyclePrev: '',
     layoutMode: 'maximize-active',
+    split: { side: 'right', gameRatio: 0.75, sideContent: 'browser' },
     enabled: true,
     overlay: { enabled: false, opacity: 0.9 },
     accountBar: { enabled: false, opacity: 0.95 },
@@ -731,18 +732,146 @@ function renderLayout(): HTMLElement {
   }, [
     optionEl('none', 'Ne rien toucher (juste mettre au premier plan)'),
     optionEl('maximize-active', 'Agrandir la fenêtre active'),
-    optionEl('grid', 'Mosaïque (toutes les fenêtres)')
+    optionEl('grid', 'Mosaïque (toutes les fenêtres)'),
+    optionEl('split', 'Côte à côte (jeu + zone secondaire)')
   ]) as HTMLSelectElement
   select.value = state.config.layoutMode
 
   const grid = h('div', { class: 'input-grid' }, [
     field('Au changement de compte', h('div', { class: 'select-wrap' }, [select, caret()]))
   ])
+
+  const children: (Node | null)[] = [grid]
+  if (state.config.layoutMode === 'split') children.push(renderSplitSettings())
+
   return pageEl(
     'Disposition des fenêtres',
     'Comment placer les fenêtres lors d’un changement de compte.',
-    grid
+    ...children
   )
+}
+
+/**
+ * Réglages de la disposition « côte à côte » : taille du split (configurable),
+ * côté de la zone secondaire et contenu de celle-ci (navigateur intégré, fenêtre
+ * externe par titre, ou rien — l'usage du navigateur intégré n'est pas imposé).
+ * Le bouton « Organiser maintenant » applique l'agencement à la demande.
+ */
+function renderSplitSettings(): HTMLElement {
+  const sp = state.config.split
+
+  // Côté de la zone secondaire (le jeu occupe le reste).
+  const sideSel = h('select', {
+    class: 'input',
+    on: {
+      change: (e) => {
+        sp.side = (e.target as HTMLSelectElement).value as AppConfig['split']['side']
+        markDirty()
+      }
+    }
+  }, [optionEl('right', 'À droite'), optionEl('left', 'À gauche')]) as HTMLSelectElement
+  sideSel.value = sp.side
+
+  // Taille de la zone de jeu, en fraction de la largeur de l'écran (50 % → 90 %).
+  const ratioPct = (v: number): string => `Jeu ${Math.round(v * 100)} % · secondaire ${Math.round((1 - v) * 100)} %`
+  const ratioLabel = h('span', { class: 'upd-pct', text: ratioPct(sp.gameRatio) })
+  const ratioSlider = h('input', {
+    type: 'range',
+    class: 'range',
+    attrs: { min: '0.5', max: '0.9', step: '0.05', value: String(sp.gameRatio) },
+    on: {
+      input: (e) => {
+        ratioLabel.textContent = ratioPct(Number((e.target as HTMLInputElement).value))
+      },
+      change: (e) => {
+        sp.gameRatio = Number((e.target as HTMLInputElement).value)
+        markDirty()
+      }
+    }
+  }) as HTMLInputElement
+  const ratioRow = h('div', { class: 'field field--gap-top' }, [
+    h('span', { class: 'field-label', text: 'Taille du partage' }),
+    h('div', { class: 'range-row' }, [ratioSlider, ratioLabel])
+  ])
+
+  // Contenu de la zone secondaire.
+  const contentSel = h('select', {
+    class: 'input',
+    on: {
+      change: (e) => {
+        sp.sideContent = (e.target as HTMLSelectElement).value as AppConfig['split']['sideContent']
+        markDirty()
+      }
+    }
+  }, [
+    optionEl('browser', 'Navigateur intégré'),
+    optionEl('window', 'Une fenêtre externe (par titre)'),
+    optionEl('none', 'Rien (zone laissée libre)')
+  ]) as HTMLSelectElement
+  contentSel.value = sp.sideContent
+
+  const topGrid = h('div', { class: 'input-grid two' }, [
+    field('Zone secondaire', h('div', { class: 'select-wrap' }, [sideSel, caret()])),
+    field('Contenu de la zone', h('div', { class: 'select-wrap' }, [contentSel, caret()]))
+  ])
+
+  // Champ titre de la fenêtre externe (seulement si « fenêtre externe »).
+  const matchRow =
+    sp.sideContent === 'window'
+      ? h('div', { class: 'input-grid' }, [
+          field(
+            'Titre de la fenêtre',
+            textInput(sp.sideMatchTitle ?? '', 'ex. Google Chrome', (v) => {
+              sp.sideMatchTitle = v || undefined
+              state.dirty = true
+              syncSaveButton()
+            }, true)
+          )
+        ])
+      : null
+
+  const arrangeBtn = h('button', {
+    class: 'btn btn--primary btn--sm',
+    text: 'Organiser maintenant',
+    title: 'Placer les fenêtres de jeu et la zone secondaire selon ces réglages',
+    on: { click: () => void window.api.arrangeLayout() }
+  })
+
+  const shortcutRow = h('div', { class: 'input-grid' }, [
+    field(
+      'Raccourci « Organiser »',
+      shortcutCapture(state.config.arrangeShortcut ?? '', (a) => {
+        state.config.arrangeShortcut = a || undefined
+        markDirty()
+      })
+    )
+  ])
+
+  const note = h('div', { class: 'alert alert--info' }, [
+    h('div', { class: 'alert-body' }, [
+      h('p', {
+        html:
+          'Les fenêtres de jeu sont <strong>empilées</strong> dans la grande zone et la zone ' +
+          'secondaire reçoit le contenu choisi. <strong>Changer de compte</strong> ne fait ensuite ' +
+          'que ramener la fenêtre au premier plan, <strong>sans redimensionnement</strong>. ' +
+          'Relancez « Organiser » après l’ouverture d’un nouveau client.'
+      })
+    ])
+  ])
+
+  const kids: (Node | string)[] = [
+    h('div', { class: 'field-label', text: 'Côte à côte' }),
+    topGrid
+  ]
+  if (matchRow) kids.push(matchRow)
+  kids.push(
+    ratioRow,
+    h('div', { class: 'field-label sec-gap', text: 'Organisation' }),
+    shortcutRow,
+    h('div', { class: 'row-actions' }, [arrangeBtn]),
+    note
+  )
+  return h('div', { class: 'sec-gap' }, kids)
 }
 
 /** Curseur d'opacité réutilisable (aperçu live, application à la fin du drag). */

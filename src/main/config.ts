@@ -2,7 +2,16 @@ import Store from 'electron-store'
 import { z } from 'zod'
 import { DEFAULT_CONFIG, type AppConfig } from '@shared/types'
 
-const layoutModeSchema = z.enum(['none', 'grid', 'maximize-active'])
+const layoutModeSchema = z.enum(['none', 'grid', 'maximize-active', 'split'])
+
+const splitSchema = z
+  .object({
+    side: z.enum(['left', 'right']).default('right'),
+    gameRatio: z.number().min(0.5).max(0.9).default(0.75),
+    sideContent: z.enum(['browser', 'window', 'none']).default('browser'),
+    sideMatchTitle: z.string().optional()
+  })
+  .default(DEFAULT_CONFIG.split)
 
 const accountSchema = z.object({
   id: z.string().min(1),
@@ -85,6 +94,8 @@ const configSchema = z.object({
   accountBarToggle: z.string().optional(),
   combatToggle: z.string().optional(),
   layoutMode: layoutModeSchema,
+  split: splitSchema,
+  arrangeShortcut: z.string().optional(),
   enabled: z.boolean(),
   overlay: overlaySchema,
   accountBar: accountBarSchema,

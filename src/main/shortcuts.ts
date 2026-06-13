@@ -5,9 +5,10 @@ import type {
   CycleDirection,
   ShortcutRegistration
 } from '@shared/types'
-import { focusAccount, applyGridLayout } from './windowManager'
+import { focusAccount, applyGridLayout, applySplitLayout, snapWindowByTitle } from './windowManager'
 import { setActiveCharacter } from './overlay'
 import { setActiveAccount } from './accountBar'
+import { snapBrowserTo } from './browser'
 import { getConfig, applyConfig } from './state'
 import { toggleCombat } from './combatState'
 import { toggleQuickMacro } from './quickMacro'
@@ -69,9 +70,33 @@ export function cycle(config: AppConfig, direction: CycleDirection): boolean {
   return false
 }
 
-/** Réorganise toutes les fenêtres en mosaïque (action manuelle). */
-export function arrangeGrid(config: AppConfig): void {
-  applyGridLayout(config.accounts)
+/**
+ * Agence les fenêtres en « côte à côte » : empile les fenêtres de jeu dans la
+ * grande zone, puis remplit la zone secondaire selon le contenu configuré
+ * (navigateur intégré, fenêtre externe par titre, ou rien). Le compte courant est
+ * remis au premier plan dans la zone de jeu.
+ */
+function arrangeSplit(config: AppConfig): void {
+  const side = applySplitLayout(config.accounts, config.split)
+  const s = config.split
+  if (s.sideContent === 'browser') {
+    snapBrowserTo(side)
+  } else if (s.sideContent === 'window' && s.sideMatchTitle) {
+    snapWindowByTitle(s.sideMatchTitle, side)
+  }
+  const accounts = orderedAccounts(config)
+  const current = accounts[currentIndex]
+  if (current) focusAccount(current, 'none')
+}
+
+/**
+ * (Ré)organise les fenêtres selon la disposition courante (action manuelle :
+ * bouton « Organiser », raccourci ou menu de la zone de notification).
+ * En mode « côte à côte » : agence jeu + zone secondaire. Sinon : mosaïque.
+ */
+export function arrangeLayout(config: AppConfig): void {
+  if (config.layoutMode === 'split') arrangeSplit(config)
+  else applyGridLayout(config.accounts)
 }
 
 /**
@@ -154,6 +179,11 @@ export function registerAll(config: AppConfig): ShortcutRegistration[] {
   // la même convention que les autres entrées optionnelles ci-dessus.
   tryRegister(config.quickMacro?.enabled ? config.quickMacro.shortcut : '', 'Macro rapide', () => {
     setImmediate(() => toggleQuickMacro())
+  })
+  // (Ré)organise les fenêtres selon la disposition courante. Différé hors de la
+  // pile du callback : `arrangeSplit` peut activer le navigateur (applyConfig).
+  tryRegister(config.arrangeShortcut ?? '', 'Organiser les fenêtres', () => {
+    setImmediate(() => arrangeLayout(getConfig()))
   })
 
   // Active (ou arrête) le hook souris selon les raccourcis souris configurés.

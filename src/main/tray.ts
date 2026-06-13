@@ -1,7 +1,7 @@
 import { app, Menu, Tray, nativeImage, type BrowserWindow } from 'electron'
 import { getConfig, applyConfig } from './state'
 import { focusBrowser } from './browser'
-import { arrangeGrid } from './shortcuts'
+import { arrangeLayout } from './shortcuts'
 import { checkForUpdates, quitAndInstall, getUpdateState } from './updater'
 
 // Logo « jetons de comptes » 32×32 (pastilles superposées, jeton actif rouge,
@@ -56,8 +56,11 @@ export function rebuildMenu(getWindow: () => BrowserWindow | null): void {
       }
     },
     {
-      label: 'Réorganiser les fenêtres (mosaïque)',
-      click: () => arrangeGrid(getConfig())
+      label:
+        config.layoutMode === 'split'
+          ? 'Organiser les fenêtres (côte à côte)'
+          : 'Réorganiser les fenêtres (mosaïque)',
+      click: () => arrangeLayout(getConfig())
     },
     {
       label: 'Ouvrir le navigateur (guides)',
